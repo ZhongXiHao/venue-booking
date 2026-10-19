@@ -1,10 +1,10 @@
-# api（后端，负责人：A）
+# api（后端，负责人：鍾錫豪）
 
 此目录放 Spring Boot 项目：`pom.xml` 与 `src/` 直接放在本目录下（`Dockerfile` 已按此结构编写）。
 
 ## 约定
 
-- 包结构沿用 blog 项目：`controller / service / mapper / pojo / dto / vo / exception / config`
+- 包结构：`controller / service / mapper / pojo / dto / vo / exception / config`
 - 容器内监听 `8080`，路径前缀 `/api`
 - 数据库配置只从环境变量读取，**不要写 fallback 默认值**（缺失即启动失败）：
 
