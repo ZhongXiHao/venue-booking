@@ -9,7 +9,7 @@ CREATE TABLE venues (
   capacity    INT          NOT NULL,
   open_time   TIME         NOT NULL COMMENT '每日开放开始时间',
   close_time  TIME         NOT NULL COMMENT '每日开放结束时间',
-  status      ENUM('OPEN','CLOSED') NOT NULL DEFAULT 'OPEN',
+  status      ENUM('OPEN','DISABLED') NOT NULL DEFAULT 'OPEN',
   created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'UTC',
   PRIMARY KEY (id),
   UNIQUE KEY uk_venue_name (name),
@@ -20,11 +20,11 @@ CREATE TABLE venues (
 CREATE TABLE reservations (
   id               BIGINT       NOT NULL AUTO_INCREMENT,
   venue_id         BIGINT       NOT NULL,
-  reserver         VARCHAR(100) NOT NULL COMMENT '预约人或预约组织',
+  booker_name      VARCHAR(100) NOT NULL COMMENT '预约人或预约组织',
   reservation_date DATE         NOT NULL,
   start_time       TIME         NOT NULL,
   end_time         TIME         NOT NULL,
-  purpose          VARCHAR(255) NOT NULL,
+  purpose          VARCHAR(500) NOT NULL,
   -- 取消采用逻辑取消：状态改为 CANCELLED，保留历史记录，冲突检查只比对 ACTIVE
   status           ENUM('ACTIVE','CANCELLED') NOT NULL DEFAULT 'ACTIVE',
   created_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'UTC',
