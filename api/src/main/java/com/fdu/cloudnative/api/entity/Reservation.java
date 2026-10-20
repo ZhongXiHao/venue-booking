@@ -27,9 +27,9 @@ public class Reservation {
     private String reserver;
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate reservationDate;
-    @JsonFormat(pattern = "HH:mm")
+    @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime startTime;
-    @JsonFormat(pattern = "HH:mm")
+    @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime endTime;
     private String purpose;
     private ReservationStatus status;

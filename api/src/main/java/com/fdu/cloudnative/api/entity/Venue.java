@@ -12,9 +12,9 @@ public class Venue {
     private String name;
     private String location;
     private Integer capacity;
-    @JsonFormat(pattern = "HH:mm")
+    @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime openTime;
-    @JsonFormat(pattern = "HH:mm")
+    @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime closeTime;
     private VenueStatus status;
     private LocalDateTime createdAt;
