@@ -50,9 +50,9 @@ docker compose ps         # 三个服务应为 running，database 为 healthy
 | GET | /api/venues/{id} | 场地详情 |
 | POST | /api/venues | 创建场地 |
 | POST | /api/reservations | 创建预约 |
-| GET | /api/reservations | 预约列表 |
+| GET | /api/reservations | 预约列表（分页、可筛选） |
 | GET | /api/reservations/{id} | 预约详情 |
-| DELETE | /api/reservations/{id} | 取消预约（逻辑取消） |
+| POST | /api/reservations/{id}/cancel | 取消预约（逻辑取消） |
 
 ## 数据持久化验证（8.3）
 
