@@ -39,7 +39,7 @@ public class VenueServiceImpl implements VenueService {
         venueVO.setCapacity(venue.getCapacity());
         venueVO.setOpenTime(venue.getOpenTime());
         venueVO.setCloseTime(venue.getCloseTime());
-        venueVO.setStatus(venue.getStatus().getApiValue());
+        venueVO.setStatus(venue.getStatus().name());
         return venueVO;
     }
 }
