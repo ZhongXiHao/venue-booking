@@ -5,7 +5,7 @@
 ## 架构
 
 ```
-浏览器 → frontend（nginx，:8080 对外）
+浏览器 → frontend（nginx，:8088 对外）
             │  /api/ 反向代理
             ▼
          api（Spring Boot，容器内 :8080，不对外）
@@ -27,7 +27,7 @@ venue-booking/
 ├── api/                  # 后端（Spring Boot + Dockerfile）
 ├── frontend/             # 前端（静态页面 + nginx.conf + Dockerfile）
 ├── db/init/              # 建表与种子数据（首次初始化时自动执行）
-└── docs/api-contract.md  # API 契约
+└── docs/contract.md      # API 契约
 ```
 
 ## 快速开始
@@ -38,11 +38,11 @@ docker compose up --build -d
 docker compose ps         # 三个服务应为 running，database 为 healthy
 ```
 
-浏览器打开 http://localhost:8080
+浏览器打开 http://localhost:8088
 
 ## 接口列表
 
-详见 [docs/api-contract.md](docs/api-contract.md)。
+详见 [docs/contract.md](docs/contract.md)。
 
 | 方法 | 路径 | 说明 |
 |---|---|---|

@@ -19,4 +19,4 @@ server:
 ```
 
 - 本地开发（不走 Docker）时，在 IDEA Run Configuration 里设置这几个环境变量即可
-- 接口、错误格式与冲突规则见 `../docs/api-contract.md`
+- 接口、错误格式与冲突规则见 `../docs/contract.md`

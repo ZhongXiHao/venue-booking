@@ -33,15 +33,17 @@
       el.className = ok ? 'ok' : 'err';
     }
 
-    // 统一请求封装：失败时按契约读取 { code, message }
+    // 统一请求封装：响应均为 { code, message, data }，成功时返回 data，失败时抛出 message
     async function request(path, options) {
       const res = await fetch(API + path, {
         headers: { 'Content-Type': 'application/json' },
         ...options
       });
       const body = await res.json().catch(() => null);
-      if (!res.ok) throw new Error((body && body.message) || ('请求失败：HTTP ' + res.status));
-      return body;
+      if (!res.ok || !body || body.code !== 'SUCCESS') {
+        throw new Error((body && body.message) || ('请求失败：HTTP ' + res.status));
+      }
+      return body.data;
     }
 
     async function loadVenues() {
