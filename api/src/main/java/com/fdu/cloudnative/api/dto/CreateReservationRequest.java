@@ -1,6 +1,7 @@
 package com.fdu.cloudnative.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.OptBoolean;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -19,14 +20,14 @@ public class CreateReservationRequest {
     @NotBlank(message = "预约人或预约组织不能为空")
     @Size(max = 100, message = "预约人或预约组织长度不能超过 100 个字符")
     private String bookerName;
-    @JsonFormat(pattern = "yyyy-MM-dd")
+    @JsonFormat(pattern = "uuuu-MM-dd", lenient = OptBoolean.FALSE)
     @NotNull(message = "预约日期不能为空")
     private LocalDate reservationDate;
     @NotNull(message = "预约开始时间不能为空")
-    @JsonFormat(pattern = "HH:mm:ss")
+    @JsonFormat(pattern = "HH:mm:ss", lenient = OptBoolean.FALSE)
     private LocalTime startTime;
     @NotNull(message = "预约结束时间不能为空")
-    @JsonFormat(pattern = "HH:mm:ss")
+    @JsonFormat(pattern = "HH:mm:ss", lenient = OptBoolean.FALSE)
     private LocalTime endTime;
     @NotBlank(message = "预约用途不能为空")
     @Size(max = 500, message = "预约用途长度不能超过 500 个字符")

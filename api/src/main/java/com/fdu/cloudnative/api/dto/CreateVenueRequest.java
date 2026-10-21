@@ -1,6 +1,7 @@
 package com.fdu.cloudnative.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.OptBoolean;
 import com.fdu.cloudnative.api.entity.VenueStatus;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -24,10 +25,10 @@ public class CreateVenueRequest {
     @Min(value = 1, message = "场地容量必须大于0")
     private Integer capacity;
     @NotNull(message = "开放时间不能为空")
-    @JsonFormat(pattern = "HH:mm:ss")
+    @JsonFormat(pattern = "HH:mm:ss", lenient = OptBoolean.FALSE)
     private LocalTime openTime;
     @NotNull(message = "关闭时间不能为空")
-    @JsonFormat(pattern = "HH:mm:ss")
+    @JsonFormat(pattern = "HH:mm:ss", lenient = OptBoolean.FALSE)
     private LocalTime closeTime;
     // 可省略，默认 OPEN；非法取值在反序列化阶段就会返回 400
     private VenueStatus status;
