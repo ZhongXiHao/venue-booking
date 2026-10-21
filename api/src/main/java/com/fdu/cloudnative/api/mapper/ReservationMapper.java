@@ -33,7 +33,7 @@ public interface ReservationMapper {
     List<ReservationVO> selectPage(@Param("venueId") Long venueId,
                                    @Param("reservationDate") LocalDate reservationDate,
                                    @Param("status") String status,
-                                   @Param("offset") int offset,
+                                   @Param("offset") long offset,
                                    @Param("pageSize") int pageSize);
 
     long count(@Param("venueId") Long venueId,
