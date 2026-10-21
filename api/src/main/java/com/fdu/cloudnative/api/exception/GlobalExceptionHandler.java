@@ -27,6 +27,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<Result<?>> handleBusinessException(BusinessException ex) {
         ErrorCode errorCode = ex.getErrorCode();
+        if (ex.getFieldErrors() != null) {
+            return ResponseEntity.status(errorCode.getStatus())
+                    .body(Result.error(errorCode.name(), ex.getMessage(),
+                            Map.of("fieldErrors", ex.getFieldErrors())));
+        }
         return ResponseEntity.status(errorCode.getStatus())
                 .body(Result.error(errorCode.name(), ex.getMessage()));
     }
@@ -36,8 +41,8 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Result<?>> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
-        List<Map<String, String>> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
-                .map(e -> Map.of("field", e.getField(), "message", String.valueOf(e.getDefaultMessage())))
+        List<FieldErrorItem> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
+                .map(e -> new FieldErrorItem(e.getField(), String.valueOf(e.getDefaultMessage())))
                 .toList();
         return validationError(fieldErrors);
     }
@@ -53,7 +58,7 @@ public class GlobalExceptionHandler {
             field = fieldPath(je);
             message = "字段格式错误";
         }
-        return validationError(List.of(Map.of("field", field, "message", message)));
+        return validationError(List.of(new FieldErrorItem(field, message)));
     }
 
     /**
@@ -61,7 +66,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Result<?>> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex) {
-        return validationError(List.of(Map.of("field", ex.getName(), "message", "参数格式错误")));
+        return validationError(List.of(new FieldErrorItem(ex.getName(), "参数格式错误")));
     }
 
     /**
@@ -69,8 +74,8 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Result<?>> handleConstraintViolationException(ConstraintViolationException ex) {
-        List<Map<String, String>> fieldErrors = ex.getConstraintViolations().stream()
-                .map(v -> Map.of("field", v.getPropertyPath().toString(), "message", v.getMessage()))
+        List<FieldErrorItem> fieldErrors = ex.getConstraintViolations().stream()
+                .map(v -> new FieldErrorItem(v.getPropertyPath().toString(), v.getMessage()))
                 .toList();
         return validationError(fieldErrors);
     }
@@ -121,7 +126,7 @@ public class GlobalExceptionHandler {
         return sb.toString();
     }
 
-    private ResponseEntity<Result<?>> validationError(List<Map<String, String>> fieldErrors) {
+    private ResponseEntity<Result<?>> validationError(List<FieldErrorItem> fieldErrors) {
         ErrorCode errorCode = ErrorCode.VALIDATION_ERROR;
         return ResponseEntity.status(errorCode.getStatus())
                 .body(Result.error(errorCode.name(), errorCode.getDefaultMessage(),
