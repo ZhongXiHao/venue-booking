@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: api
+  datasource:
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useUnicode=true&characterEncoding=utf8&connectionTimeZone=UTC
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
