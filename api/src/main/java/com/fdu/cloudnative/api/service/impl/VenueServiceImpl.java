@@ -1,5 +1,6 @@
 package com.fdu.cloudnative.api.service.impl;
 
+import com.fdu.cloudnative.api.common.PageResult;
 import com.fdu.cloudnative.api.dto.CreateVenueRequest;
 import com.fdu.cloudnative.api.entity.Venue;
 import com.fdu.cloudnative.api.entity.VenueStatus;
@@ -27,10 +28,16 @@ public class VenueServiceImpl implements VenueService {
     }
 
     @Override
-    public List<VenueVO> getVenues() {
-        return venueMapper.getVenues().stream()
+    public PageResult<VenueVO> getVenues(int page, int pageSize) {
+        PageResult.checkParams(page, pageSize);
+
+        long total = venueMapper.countVenues();
+        // 用 long 计算偏移量，避免 page 很大时 int 溢出
+        long offset = (long) (page - 1) * pageSize;
+        List<VenueVO> items = venueMapper.selectVenuePage(offset, pageSize).stream()
                 .map(this::toVO)
                 .collect(Collectors.toList());
+        return new PageResult<>(items, total, page, pageSize);
     }
 
     @Override

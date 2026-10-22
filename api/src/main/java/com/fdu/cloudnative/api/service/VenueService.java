@@ -1,12 +1,11 @@
 package com.fdu.cloudnative.api.service;
 
+import com.fdu.cloudnative.api.common.PageResult;
 import com.fdu.cloudnative.api.dto.CreateVenueRequest;
 import com.fdu.cloudnative.api.vo.VenueVO;
 
-import java.util.List;
-
 public interface VenueService {
-    List<VenueVO> getVenues();
+    PageResult<VenueVO> getVenues(int page, int pageSize);
 
     VenueVO getVenueById(Long venueId);
 

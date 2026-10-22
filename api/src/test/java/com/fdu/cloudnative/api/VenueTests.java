@@ -22,6 +22,6 @@ public class VenueTests {
 
     @Test
     public void testGetVenues() {
-        System.out.println(venueService.getVenues());
+        System.out.println(venueService.getVenues(1, 10));
     }
 }
