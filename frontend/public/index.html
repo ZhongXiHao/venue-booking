@@ -48,7 +48,8 @@
 
     async function loadVenues() {
       try {
-        const venues = await request('/venues');
+        // 场地列表是分页结构 { items, total, page, pageSize }
+        const { items: venues } = await request('/venues');
         const tbody = document.querySelector('#venues tbody');
         tbody.innerHTML = '';
         for (const v of venues) {
