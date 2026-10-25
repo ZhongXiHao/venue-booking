@@ -8,6 +8,7 @@ import {
   type CreateVenueRequest,
 } from '../api/venues'
 import { ApiError, parseApiError } from '../api/http'
+import { isHalfHourSharp } from '../utils/time'
 
 const form = reactive({
   name: '',
@@ -63,6 +64,14 @@ function validateForm(): string {
 
   if (!Number.isFinite(open) || !Number.isFinite(close)) {
     return '请选择合法的开放时间和关闭时间'
+  }
+
+  if (!isHalfHourSharp(form.openTime)) {
+    return '开放时间必须为 30 分钟整点，如 08:00 或 08:30'
+  }
+
+  if (!isHalfHourSharp(form.closeTime)) {
+    return '关闭时间必须为 30 分钟整点，如 22:00 或 22:30'
   }
 
   if (open >= close) {
@@ -137,7 +146,7 @@ async function submitVenue() {
 <template>
   <section class="create-page">
     <h2>创建场地</h2>
-    <p class="hint">开放时间按北京时间填写，暂不支持跨天。</p>
+    <p class="hint">开放时间按北京时间填写，须为 30 分钟整点，暂不支持跨天。</p>
 
     <!-- 创建成功 -->
     <div
@@ -244,7 +253,7 @@ async function submitVenue() {
               :aria-describedby="fieldErrors.openTime ? 'error-openTime' : undefined"
               v-model="form.openTime"
               type="time"
-              step="60"
+              step="1800"
               required
             />
             <p
@@ -264,7 +273,7 @@ async function submitVenue() {
               :aria-describedby="fieldErrors.closeTime ? 'error-closeTime' : undefined"
               v-model="form.closeTime"
               type="time"
-              step="60"
+              step="1800"
               required
             />
             <p

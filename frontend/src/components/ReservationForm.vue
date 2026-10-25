@@ -8,6 +8,7 @@ import {
   type Reservation,
 } from '../api/reservations'
 import { ApiError, parseApiError } from '../api/http'
+import { isHalfHourSharp } from '../utils/time'
 
 const props = defineProps<{
   venue: Venue
@@ -72,6 +73,14 @@ function validateForm(): string {
 
   if (![start, end, open, close].every(Number.isFinite)) {
     return '时间格式异常，请检查输入或重新加载场地'
+  }
+
+  if (!isHalfHourSharp(form.startTime)) {
+    return '开始时间必须为 30 分钟整点，如 14:00 或 14:30'
+  }
+
+  if (!isHalfHourSharp(form.endTime)) {
+    return '结束时间必须为 30 分钟整点，如 14:00 或 14:30'
   }
 
   if (start >= end) {
@@ -167,7 +176,7 @@ async function submitReservation() {
 <template>
   <section class="reservation-form">
     <h3>填写预约信息</h3>
-    <p class="hint">日期和时间均按北京时间填写。</p>
+    <p class="hint">日期和时间均按北京时间填写，时间须为 30 分钟整点。</p>
 
     <!-- 创建成功后隐藏表单，避免再次点击提交 -->
     <div
@@ -263,7 +272,7 @@ async function submitReservation() {
               :aria-describedby="fieldErrors.startTime ? 'error-startTime' : undefined"
               v-model="form.startTime"
               type="time"
-              step="60"
+              step="1800"
               required
             />
             <p
@@ -283,7 +292,7 @@ async function submitReservation() {
               :aria-describedby="fieldErrors.endTime ? 'error-endTime' : undefined"
               v-model="form.endTime"
               type="time"
-              step="60"
+              step="1800"
               required
             />
             <p
