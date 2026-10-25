@@ -33,7 +33,7 @@ export interface ReservationPage {
 
 export interface ReservationQuery {
   venueId?: string
-  date?: string
+  reservationDate?: string
   status?: Reservation['status']
   page?: number
   pageSize?: number
@@ -51,8 +51,8 @@ export function getReservations(
     query.set('venueId', params.venueId.trim())
   }
 
-  if (params.date) {
-    query.set('date', params.date)
+  if (params.reservationDate) {
+    query.set('reservationDate', params.reservationDate)
   }
 
   if (params.status) {

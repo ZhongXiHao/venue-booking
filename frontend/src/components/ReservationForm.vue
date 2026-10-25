@@ -7,7 +7,8 @@ import {
   createReservation,
   type Reservation,
 } from '../api/reservations'
-import { ApiError } from '../api/http'
+import { ApiError, parseApiError } from '../api/http'
+import { isHalfHourSharp } from '../utils/time'
 
 const props = defineProps<{
   venue: Venue
@@ -23,6 +24,7 @@ const form = reactive({
 
 const submitting = ref(false)
 const errorMessage = ref('')
+const fieldErrors = ref<Record<string, string>>({})
 const createdReservation = ref<Reservation | null>(null)
 const resultUncertain = ref(false)
 
@@ -73,6 +75,14 @@ function validateForm(): string {
     return '时间格式异常，请检查输入或重新加载场地'
   }
 
+  if (!isHalfHourSharp(form.startTime)) {
+    return '开始时间必须为 30 分钟整点，如 14:00 或 14:30'
+  }
+
+  if (!isHalfHourSharp(form.endTime)) {
+    return '结束时间必须为 30 分钟整点，如 14:00 或 14:30'
+  }
+
   if (start >= end) {
     return '结束时间必须晚于开始时间，本系统暂不支持跨天预约'
   }
@@ -113,6 +123,7 @@ async function submitReservation() {
     return
   }
 
+  fieldErrors.value = {}
   errorMessage.value = validateForm()
 
   if (errorMessage.value) {
@@ -145,8 +156,16 @@ async function submitReservation() {
       errorMessage.value =
         '未能确认预约结果，请先查询预约记录或联系后端同学核实，避免重复提交。'
     } else {
-      errorMessage.value =
-        error instanceof Error ? error.message : '预约提交失败'
+      const parsed = parseApiError(error, '预约提交失败', [
+        'bookerName',
+        'reservationDate',
+        'startTime',
+        'endTime',
+        'purpose',
+      ])
+
+      errorMessage.value = parsed.message
+      fieldErrors.value = parsed.fieldErrors
     }
   } finally {
     submitting.value = false
@@ -157,7 +176,7 @@ async function submitReservation() {
 <template>
   <section class="reservation-form">
     <h3>填写预约信息</h3>
-    <p class="hint">日期和时间均按北京时间填写。</p>
+    <p class="hint">日期和时间均按北京时间填写，时间须为 30 分钟整点。</p>
 
     <!-- 创建成功后隐藏表单，避免再次点击提交 -->
     <div
@@ -208,22 +227,40 @@ async function submitReservation() {
           <label for="bookerName">预约人或组织名称</label>
           <input
             id="bookerName"
+            :aria-invalid="!!fieldErrors.bookerName"
+            :aria-describedby="fieldErrors.bookerName ? 'error-bookerName' : undefined"
             v-model="form.bookerName"
             type="text"
             maxlength="100"
             required
             placeholder="请输入预约人或组织名称"
           />
+          <p
+            v-if="fieldErrors.bookerName"
+            id="error-bookerName"
+            class="field-error"
+          >
+            {{ fieldErrors.bookerName }}
+          </p>
         </div>
 
         <div class="form-field">
           <label for="reservationDate">预约日期</label>
           <input
             id="reservationDate"
+            :aria-invalid="!!fieldErrors.reservationDate"
+            :aria-describedby="fieldErrors.reservationDate ? 'error-reservationDate' : undefined"
             v-model="form.reservationDate"
             type="date"
             required
           />
+          <p
+            v-if="fieldErrors.reservationDate"
+            id="error-reservationDate"
+            class="field-error"
+          >
+            {{ fieldErrors.reservationDate }}
+          </p>
         </div>
 
         <div class="time-row">
@@ -231,22 +268,40 @@ async function submitReservation() {
             <label for="startTime">开始时间</label>
             <input
               id="startTime"
+              :aria-invalid="!!fieldErrors.startTime"
+              :aria-describedby="fieldErrors.startTime ? 'error-startTime' : undefined"
               v-model="form.startTime"
               type="time"
-              step="60"
+              step="1800"
               required
             />
+            <p
+              v-if="fieldErrors.startTime"
+              id="error-startTime"
+              class="field-error"
+            >
+              {{ fieldErrors.startTime }}
+            </p>
           </div>
 
           <div class="form-field">
             <label for="endTime">结束时间</label>
             <input
               id="endTime"
+              :aria-invalid="!!fieldErrors.endTime"
+              :aria-describedby="fieldErrors.endTime ? 'error-endTime' : undefined"
               v-model="form.endTime"
               type="time"
-              step="60"
+              step="1800"
               required
             />
+            <p
+              v-if="fieldErrors.endTime"
+              id="error-endTime"
+              class="field-error"
+            >
+              {{ fieldErrors.endTime }}
+            </p>
           </div>
         </div>
 
@@ -254,12 +309,21 @@ async function submitReservation() {
           <label for="purpose">使用目的</label>
           <textarea
             id="purpose"
+            :aria-invalid="!!fieldErrors.purpose"
+            :aria-describedby="fieldErrors.purpose ? 'error-purpose' : undefined"
             v-model="form.purpose"
             rows="4"
             maxlength="500"
             required
             placeholder="例如：课程项目讨论"
           />
+          <p
+            v-if="fieldErrors.purpose"
+            id="error-purpose"
+            class="field-error"
+          >
+            {{ fieldErrors.purpose }}
+          </p>
         </div>
 
         <button type="submit">
@@ -337,8 +401,14 @@ button:disabled {
   color: #64748b;
 }
 
-.error-message {
+.error-message,
+.field-error {
   color: #b91c1c;
+}
+
+.field-error {
+  margin: 0;
+  font-size: 14px;
 }
 
 .success-message {

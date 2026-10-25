@@ -65,3 +65,48 @@ export async function request<T>(
 
   return result.data
 }
+
+// 校验失败时，后端在 data.fieldErrors 里给出 [{field, message}]
+export function getFieldErrors(error: unknown): Record<string, string> {
+  if (!(error instanceof ApiError)) return {}
+
+  const data = error.data as { fieldErrors?: unknown } | null
+  if (!data || !Array.isArray(data.fieldErrors)) return {}
+
+  const result: Record<string, string> = {}
+
+  for (const item of data.fieldErrors as unknown[]) {
+    if (typeof item !== 'object' || item === null) continue
+
+    const { field, message } = item as Record<string, unknown>
+    if (typeof field !== 'string' || typeof message !== 'string') continue
+
+    result[field] = result[field] ? `${result[field]}；${message}` : message
+  }
+
+  return result
+}
+
+// 把接口错误拆成"表单里有对应输入框的字段错误"和一条总提示。
+// 没有输入框的字段（如 venueId）并入总提示，避免错误被吞掉。
+export function parseApiError(
+  error: unknown,
+  fallback: string,
+  knownFields: string[],
+) {
+  const fieldErrors: Record<string, string> = {}
+  const others: string[] = []
+
+  for (const [field, message] of Object.entries(getFieldErrors(error))) {
+    if (knownFields.includes(field)) {
+      fieldErrors[field] = message
+    } else {
+      others.push(`${field}：${message}`)
+    }
+  }
+
+  const base = error instanceof Error ? error.message : fallback
+  const message = others.length ? `${base}（${others.join('；')}）` : base
+
+  return { message, fieldErrors }
+}

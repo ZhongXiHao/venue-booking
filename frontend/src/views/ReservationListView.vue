@@ -40,6 +40,8 @@ const errorMessage = ref('')
 const actionMessage = ref('')
 const actionError = ref('')
 const cancellingId = ref<string | null>(null)
+// 正在等待页面内二次确认的预约编号
+const confirmingId = ref<string | null>(null)
 const needsRefresh = ref(false)
 
 const totalPages = computed(() =>
@@ -71,11 +73,12 @@ async function loadReservations(
 
   loading.value = true
   errorMessage.value = ''
+  confirmingId.value = null
 
   try {
     const params = {
       venueId: snapshot.venueId || undefined,
-      date: snapshot.date || undefined,
+      reservationDate: snapshot.date || undefined,
       status: snapshot.status || undefined,
       pageSize,
     }
@@ -139,7 +142,8 @@ function retryLoad() {
   )
 }
 
-async function handleCancel(reservation: Reservation) {
+// 点"取消预约"只进入确认状态，真正取消在 handleCancel
+function askCancel(reservation: Reservation) {
   if (
     busy.value ||
     needsRefresh.value ||
@@ -148,15 +152,22 @@ async function handleCancel(reservation: Reservation) {
     return
   }
 
-  const confirmed = window.confirm(
-    `确定取消预约 ${reservation.id} 吗？\n` +
-    `${reservation.venueName}\n` +
-    `${reservation.reservationDate} ` +
-    `${reservation.startTime}—${reservation.endTime}`,
-  )
+  actionMessage.value = ''
+  actionError.value = ''
+  confirmingId.value = reservation.id
+}
 
-  if (!confirmed) return
+async function handleCancel(reservation: Reservation) {
+  if (
+    busy.value ||
+    needsRefresh.value ||
+    reservation.status !== 'ACTIVE' ||
+    confirmingId.value !== reservation.id
+  ) {
+    return
+  }
 
+  confirmingId.value = null
   cancellingId.value = reservation.id
   actionMessage.value = ''
   actionError.value = ''
@@ -355,18 +366,46 @@ onMounted(() => {
               </td>
 
               <td>
-                <button
-                  v-if="reservation.status === 'ACTIVE'"
-                  type="button"
-                  :disabled="busy || needsRefresh"
-                  @click="handleCancel(reservation)"
-                >
-                  {{
-                    cancellingId === reservation.id
-                      ? '取消中……'
-                      : '取消预约'
-                  }}
-                </button>
+                <template v-if="reservation.status === 'ACTIVE'">
+                  <div
+                    v-if="confirmingId === reservation.id"
+                    class="confirm-box"
+                    role="group"
+                    :aria-label="`确认取消预约 ${reservation.id}`"
+                  >
+                    <span>确定取消？</span>
+
+                    <button
+                      type="button"
+                      class="danger"
+                      :disabled="busy"
+                      @click="handleCancel(reservation)"
+                    >
+                      确认取消
+                    </button>
+
+                    <button
+                      type="button"
+                      :disabled="busy"
+                      @click="confirmingId = null"
+                    >
+                      返回
+                    </button>
+                  </div>
+
+                  <button
+                    v-else
+                    type="button"
+                    :disabled="busy || needsRefresh"
+                    @click="askCancel(reservation)"
+                  >
+                    {{
+                      cancellingId === reservation.id
+                        ? '取消中……'
+                        : '取消预约'
+                    }}
+                  </button>
+                </template>
 
                 <span v-else>—</span>
               </td>
@@ -501,6 +540,19 @@ th {
 
 .pagination {
   margin-top: 20px;
+}
+
+.confirm-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.danger {
+  color: white;
+  background: #b91c1c;
+  border-color: #b91c1c;
 }
 
 .success-message {

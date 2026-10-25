@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Logs
 logs
 *.log
@@ -41,21 +40,3 @@ __screenshots__/
 
 test-results/
 playwright-report/
-=======
-.env
-*.log
-
-# 后端
-api/target/
-.idea/
-*.iml
-.vscode/
-
-# 前端
-frontend/node_modules/
-frontend/dist/
-
-# 系统
-.DS_Store
-Thumbs.db
->>>>>>> c6ca11a547d95e818ec5b6d7907a4771e74754f2

@@ -112,14 +112,26 @@
 ## 5. 接口详情
 
 ### GET /api/venues
-无参数。成功 200，`data` 为场地数组（场地数量少，不分页）：
+查询参数（均可选）：
+
+| 参数 | 默认 | 说明 |
+|---|---|---|
+| page | 1 | 页码，从 1 开始 |
+| pageSize | 10 | 每页条数，最大 100 |
+
+排序：`id` 升序。成功 200：
 
 ```json
-{ "code": "SUCCESS", "message": "查询成功", "data": [
-  { "id": "1", "name": "第一会议室", "location": "行政楼 3 楼 301", "capacity": 20,
-    "openTime": "08:00:00", "closeTime": "22:00:00", "status": "OPEN" }
-] }
+{ "code": "SUCCESS", "message": "查询成功", "data": {
+  "items": [
+    { "id": "1", "name": "第一会议室", "location": "行政楼 3 楼 301", "capacity": 20,
+      "openTime": "08:00:00", "closeTime": "22:00:00", "status": "OPEN" }
+  ],
+  "total": 1, "page": 1, "pageSize": 10
+} }
 ```
+
+参数非法（如 `page=0`、`pageSize=101`）→ 400 `VALIDATION_ERROR`，`data.fieldErrors` 指出具体字段。页码超出范围时返回 200 和空 `items`。
 
 ### GET /api/venues/{id}
 成功 200，`data` 为单个场地对象；不存在 → 404 `VENUE_NOT_FOUND`。
@@ -232,5 +244,6 @@ SELECT COUNT(*) FROM reservations
 | 场地停用状态 | `CLOSED` | `DISABLED`（错误码仍沿用 `VENUE_CLOSED`） |
 | 取消接口 | `DELETE /api/reservations/{id}` | `POST /api/reservations/{id}/cancel` |
 | 预约列表 | 数组 | 分页 `items/total/page/pageSize` |
+| 场地列表 | 数组（不分页） | 分页 `items/total/page/pageSize` |
 | 新增规则 | - | 30 分钟粒度、禁止已开始的预约、不跨天、业务时区 Asia/Shanghai |
 | 取消 createdAt | 响应含 createdAt/cancelledAt | 响应不再返回（库里仍可保留） |

@@ -1,5 +1,6 @@
 package com.fdu.cloudnative.api.controller;
 
+import com.fdu.cloudnative.api.common.PageResult;
 import com.fdu.cloudnative.api.common.Result;
 import com.fdu.cloudnative.api.dto.CreateVenueRequest;
 import com.fdu.cloudnative.api.exception.BusinessException;
@@ -11,8 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/venues")
 public class VenueController {
@@ -23,8 +22,11 @@ public class VenueController {
     }
 
     @GetMapping
-    public ResponseEntity<Result<List<VenueVO>>> getVenues() {
-        List<VenueVO> venues = venueService.getVenues();
+    public ResponseEntity<Result<PageResult<VenueVO>>> getVenues(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        PageResult<VenueVO> venues = venueService.getVenues(page, pageSize);
         return ResponseEntity.ok(Result.success(venues));
     }
 

@@ -46,7 +46,7 @@ docker compose ps         # 三个服务应为 running，database 为 healthy
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| GET | /api/venues | 场地列表 |
+| GET | /api/venues | 场地列表（分页） |
 | GET | /api/venues/{id} | 场地详情 |
 | POST | /api/venues | 创建场地 |
 | POST | /api/reservations | 创建预约 |
@@ -175,7 +175,7 @@ curl -s -w ' [%{http_code}]\n' -X POST $BASE/reservations -H "$H" -d "$(body 1 1
 
 | # | 场景 | 期望 |
 |---|---|---|
-| 1 | 场地列表 | 200，5 个场地，中文正常 |
+| 1 | 场地列表 | 200，`data.total` 为 5，`items` 含 5 个场地（默认每页 10 条），中文正常 |
 | 2 | 不存在的场地 | 404 `VENUE_NOT_FOUND` |
 | 3 | 正常创建预约 | 201，`status` 为 `ACTIVE`，带 `venueName` |
 | 4 | 同一时段再创建 | 409 `RESERVATION_CONFLICT` |

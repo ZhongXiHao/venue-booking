@@ -7,7 +7,8 @@ import {
   type Venue,
   type CreateVenueRequest,
 } from '../api/venues'
-import { ApiError } from '../api/http'
+import { ApiError, parseApiError } from '../api/http'
+import { isHalfHourSharp } from '../utils/time'
 
 const form = reactive({
   name: '',
@@ -20,6 +21,7 @@ const form = reactive({
 
 const submitting = ref(false)
 const errorMessage = ref('')
+const fieldErrors = ref<Record<string, string>>({})
 const createdVenue = ref<Venue | null>(null)
 const resultUncertain = ref(false)
 
@@ -64,6 +66,14 @@ function validateForm(): string {
     return '请选择合法的开放时间和关闭时间'
   }
 
+  if (!isHalfHourSharp(form.openTime)) {
+    return '开放时间必须为 30 分钟整点，如 08:00 或 08:30'
+  }
+
+  if (!isHalfHourSharp(form.closeTime)) {
+    return '关闭时间必须为 30 分钟整点，如 22:00 或 22:30'
+  }
+
   if (open >= close) {
     return '关闭时间必须晚于开放时间，暂不支持跨天开放'
   }
@@ -84,6 +94,7 @@ async function submitVenue() {
     return
   }
 
+  fieldErrors.value = {}
   errorMessage.value = validateForm()
 
   if (errorMessage.value) {
@@ -114,10 +125,17 @@ async function submitVenue() {
       errorMessage.value =
         '未能确认创建结果，请先查看场地列表或联系后端同学核实，避免重复创建。'
     } else {
-      errorMessage.value =
-        error instanceof Error
-          ? error.message
-          : '创建场地失败'
+      const parsed = parseApiError(error, '创建场地失败', [
+        'name',
+        'location',
+        'capacity',
+        'openTime',
+        'closeTime',
+        'status',
+      ])
+
+      errorMessage.value = parsed.message
+      fieldErrors.value = parsed.fieldErrors
     }
   } finally {
     submitting.value = false
@@ -128,7 +146,7 @@ async function submitVenue() {
 <template>
   <section class="create-page">
     <h2>创建场地</h2>
-    <p class="hint">开放时间按北京时间填写，暂不支持跨天。</p>
+    <p class="hint">开放时间按北京时间填写，须为 30 分钟整点，暂不支持跨天。</p>
 
     <!-- 创建成功 -->
     <div
@@ -167,36 +185,63 @@ async function submitVenue() {
           <label for="venue-name">场地名称</label>
           <input
             id="venue-name"
+            :aria-invalid="!!fieldErrors.name"
+            :aria-describedby="fieldErrors.name ? 'error-name' : undefined"
             v-model="form.name"
             type="text"
             maxlength="100"
             placeholder="例如：第一会议室"
             required
           />
+          <p
+            v-if="fieldErrors.name"
+            id="error-name"
+            class="field-error"
+          >
+            {{ fieldErrors.name }}
+          </p>
         </div>
 
         <div class="form-field">
           <label for="venue-location">场地位置</label>
           <input
             id="venue-location"
+            :aria-invalid="!!fieldErrors.location"
+            :aria-describedby="fieldErrors.location ? 'error-location' : undefined"
             v-model="form.location"
             type="text"
             maxlength="200"
             placeholder="例如：A栋201"
             required
           />
+          <p
+            v-if="fieldErrors.location"
+            id="error-location"
+            class="field-error"
+          >
+            {{ fieldErrors.location }}
+          </p>
         </div>
 
         <div class="form-field">
           <label for="venue-capacity">容纳人数</label>
           <input
             id="venue-capacity"
+            :aria-invalid="!!fieldErrors.capacity"
+            :aria-describedby="fieldErrors.capacity ? 'error-capacity' : undefined"
             v-model="form.capacity"
             type="text"
             inputmode="numeric"
             pattern="[0-9]+"
             required
           />
+          <p
+            v-if="fieldErrors.capacity"
+            id="error-capacity"
+            class="field-error"
+          >
+            {{ fieldErrors.capacity }}
+          </p>
         </div>
 
         <div class="time-row">
@@ -204,22 +249,40 @@ async function submitVenue() {
             <label for="venue-open-time">开放时间</label>
             <input
               id="venue-open-time"
+              :aria-invalid="!!fieldErrors.openTime"
+              :aria-describedby="fieldErrors.openTime ? 'error-openTime' : undefined"
               v-model="form.openTime"
               type="time"
-              step="60"
+              step="1800"
               required
             />
+            <p
+              v-if="fieldErrors.openTime"
+              id="error-openTime"
+              class="field-error"
+            >
+              {{ fieldErrors.openTime }}
+            </p>
           </div>
 
           <div class="form-field">
             <label for="venue-close-time">关闭时间</label>
             <input
               id="venue-close-time"
+              :aria-invalid="!!fieldErrors.closeTime"
+              :aria-describedby="fieldErrors.closeTime ? 'error-closeTime' : undefined"
               v-model="form.closeTime"
               type="time"
-              step="60"
+              step="1800"
               required
             />
+            <p
+              v-if="fieldErrors.closeTime"
+              id="error-closeTime"
+              class="field-error"
+            >
+              {{ fieldErrors.closeTime }}
+            </p>
           </div>
         </div>
 
@@ -227,11 +290,20 @@ async function submitVenue() {
           <label for="venue-status">场地状态</label>
           <select
             id="venue-status"
+            :aria-invalid="!!fieldErrors.status"
+            :aria-describedby="fieldErrors.status ? 'error-status' : undefined"
             v-model="form.status"
           >
             <option value="OPEN">开放</option>
             <option value="DISABLED">停用</option>
           </select>
+          <p
+            v-if="fieldErrors.status"
+            id="error-status"
+            class="field-error"
+          >
+            {{ fieldErrors.status }}
+          </p>
         </div>
 
         <button type="submit">
@@ -327,7 +399,13 @@ button:disabled {
   gap: 16px;
 }
 
-.error-message {
+.error-message,
+.field-error {
   color: #b91c1c;
+}
+
+.field-error {
+  margin: 0;
+  font-size: 14px;
 }
 </style>

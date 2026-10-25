@@ -27,7 +27,6 @@ import java.util.List;
 public class ReservationServiceImpl implements ReservationService {
     // 契约规定的业务时区，判断"预约已开始"时用它取当前时间
     private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Shanghai");
-    private static final int MAX_PAGE_SIZE = 100;
 
     private final ReservationMapper reservationMapper;
 
@@ -108,16 +107,7 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     public PageResult<ReservationVO> list(int page, int pageSize, Long venueId,
                                           LocalDate reservationDate, ReservationStatus status) {
-        List<FieldErrorItem> fieldErrors = new ArrayList<>();
-        if (page < 1) {
-            fieldErrors.add(new FieldErrorItem("page", "页码必须大于等于 1"));
-        }
-        if (pageSize < 1 || pageSize > MAX_PAGE_SIZE) {
-            fieldErrors.add(new FieldErrorItem("pageSize", "每页条数必须在 1 到 " + MAX_PAGE_SIZE + " 之间"));
-        }
-        if (!fieldErrors.isEmpty()) {
-            throw BusinessException.validation(fieldErrors);
-        }
+        PageResult.checkParams(page, pageSize);
 
         String statusName = status == null ? null : status.name();
         long total = reservationMapper.count(venueId, reservationDate, statusName);
