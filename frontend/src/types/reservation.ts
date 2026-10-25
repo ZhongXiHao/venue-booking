@@ -17,7 +17,7 @@ export interface Reservation extends CreateReservationRequest {
 
 export interface ReservationQuery {
   venueId?: string
-  date?: string
+  reservationDate?: string
   status?: ReservationStatus
   page?: number
   pageSize?: number

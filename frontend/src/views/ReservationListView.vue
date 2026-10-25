@@ -75,7 +75,7 @@ async function loadReservations(
   try {
     const params = {
       venueId: snapshot.venueId || undefined,
-      date: snapshot.date || undefined,
+      reservationDate: snapshot.date || undefined,
       status: snapshot.status || undefined,
       pageSize,
     }
