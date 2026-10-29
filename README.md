@@ -25,7 +25,7 @@ venue-booking/
 ├── .env.example          # 复制为 .env 使用（.env 不提交）
 ├── .gitignore
 ├── api/                  # 后端（Spring Boot + Dockerfile）
-├── frontend/             # 前端（静态页面 + nginx.conf + Dockerfile）
+├── frontend/             # 前端（Vue 3 + Vite 构建为 dist，nginx 提供静态与反代）
 ├── db/init/              # 建表与种子数据（首次初始化时自动执行）
 └── docs/contract.md      # API 契约
 ```
@@ -83,7 +83,7 @@ docker compose up --build -d
 ### 3. 响应怎么处理
 
 所有接口（成功和失败）都是同一个结构：`{ "code": "...", "message": "...", "data": ... }`。
-`frontend/public/index.html` 里的 `request()` 已经封装好了：成功返回 `data`，失败抛出带 `message` 的 Error，直接复用即可。
+Vue 应用中的请求封装在 `frontend/src/api/http.ts`：`request()` 成功返回 `data`，失败抛出带 `message` 的 `ApiError`；`getFieldErrors()` / `parseApiError()` 可把校验失败信息映射到表单字段。
 
 ```js
 // 创建预约
@@ -188,7 +188,7 @@ curl -s -w ' [%{http_code}]\n' -X POST $BASE/reservations -H "$H" -d "$(body 1 1
 | 11 | 再取消一次 | 409 `ALREADY_CANCELLED` |
 | 12 | 取消后在同一时段重新预约 | 201（已取消的不占用时段） |
 
-也可以直接在浏览器打开 http://localhost:8088，按 F12 → Console 里用相对路径发请求（当前页面只能查看，创建和取消需要手动发）：
+页面已支持创建场地、创建预约、查询详情和取消。也可以在浏览器打开 http://localhost:8088，按 F12 → Console 里用相对路径直接发请求：
 
 ```js
 fetch('/api/reservations', {
@@ -202,7 +202,7 @@ fetch('/api/reservations', {
 
 - 持久化验证见下一节。
 - 联调结束后清掉测试数据：`docker compose down -v && docker compose up -d`（`-v` 会删除数据库数据，回到种子数据）。
-- 重新部署后端代码：`docker compose up --build -d api`。
+- 重新部署后端代码：`docker compose up --build -d api`。重建 api 后若前端持续 502，执行 `docker compose restart frontend`（nginx 启动时解析并缓存 api 的容器地址）。
 
 ### 4. 查看数据库
 
@@ -227,6 +227,7 @@ docker volume ls             # 可见 venue-booking_db_data
 
 ## 常见问题
 
+- **打开 8088 仍是旧页面（只有场地列表，没有创建预约等导航）**：前端镜像还是旧静态页。执行 `docker compose build --no-cache frontend && docker compose up -d frontend` 后强制刷新浏览器（Ctrl+F5）。
 - **改了 `db/init/*.sql` 不生效**：初始化脚本只在 Volume 首次创建时执行。需要重来：`docker compose down -v` 后再 `up`
 - **刚启动时访问返回 502**：后端比 nginx 慢几秒才就绪，等 `docker compose logs api` 出现 `Started ApiApplication` 再试
 - **api 启动报连不上数据库**：先看 `docker compose ps` 中 database 是否 healthy；再检查 `.env` 中账号密码与 `docker compose logs api`

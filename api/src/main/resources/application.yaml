@@ -5,6 +5,10 @@ spring:
     url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useUnicode=true&characterEncoding=utf8&connectionTimeZone=UTC
     username: ${DB_USER}
     password: ${DB_PASSWORD}
+  jackson:
+    deserialization:
+      # 浮点字面量（如 1.5）不允许赋给整型字段，避免容量等字段被静默截断
+      accept-float-as-int: false
 server:
   port: 8080
   servlet:
