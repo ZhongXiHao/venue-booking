@@ -8,7 +8,7 @@
 
 ## 一、结论先行
 
-系统主链路验收**通过**：部署、页面冒烟、端到端业务、接口契约、并发安全、缺陷修复回归均达到预期。另有 4 个补充项未执行（见 §7），其中**数据持久化是 README「8.3」明确评分点**，强烈建议验收前用 §7 的 3 条命令补跑。
+系统主链路验收**通过**：部署、页面冒烟、端到端业务、接口契约、并发安全、缺陷修复回归均达到预期。另有 4 个补充项未执行（见 §7）。**数据持久化（README「8.3」评分点）已补测通过**，见 §7。
 
 ## 二、部署与启动（第 1 项）✅
 
@@ -54,7 +54,7 @@
 
 | 项 | 内容 | 建议 |
 |---|---|---|
-| 6.1 数据持久化（README 8.3 评分点） | `docker compose down`（不带 -v）→ `up -d` → 原预约仍在 | **强烈建议补跑**，3 条命令：`PostJ` 创建一条预约 → `docker compose down` → `docker compose up -d` 后 `GET /api/reservations/{id}` 应为 200 |
+| 6.1 数据持久化（README 8.3 评分点） | `docker compose down`（不带 -v）→ `up -d` → 原预约仍在 | ✅ 已完成：在 `acceptance/p0-fixes`（413fb39）上创建预约后 `docker compose down`（不带 -v）→ `up -d`，重启后 `GET /api/reservations/3` 返回 200（ACTIVE），2030-01-15 当天仍为 3 条（含 1 条已取消） |
 | capacity=1.5 直接复测 | `PostJ "$BASE/venues" "{""name"":""capfix-e"",""location"":""t"",""capacity"":1.5,""openTime"":""08:00:00"",""closeTime"":""22:00:00""}"` | ✅ 已完成：400（field=capacity），见 §5 |
 | 6.2–6.6 初始化/隔离/凭据/时区 | 全新卷初始化、端口网络隔离、凭据 grep、UTC 审计 | 时间允许则补 |
 | 7 后端 mvn test | Java 21 + 临时 3307 端口跑 `mvnw test` | 可选（HTTP 层已回归） |
@@ -73,5 +73,5 @@
 
 1. `docker compose down -v && docker compose up -d` 重置到种子数据（5 个场地、无预约）。
 2. 按第 3 项 8 步过一遍演示脚本（截图已备）。
-3. 补跑 §7 第一行（持久化）；capacity 复测已完成（见 §5）。
+3. 数据持久化与 capacity 复测均已补测完成（见 §7、§5）。
 4. 备好本日志与 `CHANGELOG.md` 作为验收材料附件。
