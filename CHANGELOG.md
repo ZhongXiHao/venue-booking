@@ -70,6 +70,7 @@
 ## 9. 验收阶段与日志
 
 - 2026-10-29 完成第 1–5 项验收：部署启动、8088 冒烟、端到端业务 8 步、接口契约回归（含容量缺陷发现与修复）、并发安全三组，全部通过。
-- 修复回归证据：`venueId: 1.5` → 400（field=venueId）；`capacity=1.5` 直接复测因 api 重启窗口未完成，见验收日志建议补测项。
-- 未执行项：第 6 项（持久化/初始化/隔离/凭据/时区）、第 7 项（后端 mvn test）、第 8 项（Playwright）、第 9 项（全量回归）；其中数据持久化为 README 8.3 评分点，建议验收前补跑。
+- 修复回归证据：`venueId: 1.5` → 400（field=venueId）；`capacity=1.5` → 400（field=capacity），已复测通过，见验收日志 §5。
+- 数据持久化（README 8.3 评分点）已补测通过：`docker compose down`（不带 -v）再 `up -d` 后预约仍在，见验收日志 §7。
+- 未执行项：第 6 项中的初始化/隔离/凭据/时区、第 7 项（后端 mvn test）、第 8 项（Playwright）、第 9 项（全量回归）。
 - 完整结果与交付建议见 [docs/acceptance-log.md](docs/acceptance-log.md)。
