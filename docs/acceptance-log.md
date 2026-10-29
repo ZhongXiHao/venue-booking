@@ -1,7 +1,7 @@
 # 验收日志：场地预约系统（云原生软件技术 Lab 1）
 
 - 验收日期：2026-10-29
-- 项目：[ZhongXiHao/venue-booking](https://github.com/ZhongXiHao/venue-booking)（本地 `C:\Users\FighT\Desktop\venue-booking`）
+- 项目：[ZhongXiHao/venue-booking](https://github.com/ZhongXiHao/venue-booking)
 - 验收版本：基于 `main`（03978c4）的 P0 修复版，变更明细见 `CHANGELOG.md`
 - 执行方式：验收人操作 + AI 助手协同；所有接口测试经 8088 入口（nginx → api → MySQL）发起
 - 环境：Windows + Docker Desktop（已配 registry-mirrors 加速）+ MySQL 8.0 + Node 24；api 构建与运行均在容器内（Java 21）
