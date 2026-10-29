@@ -42,7 +42,7 @@
 | 业务 | 场地重名 409 `VENUE_NAME_DUPLICATE`；省略 status 默认 OPEN；错误响应不含异常堆栈 |
 | 其他 | README 12 条验收清单（Git Bash 执行，结论通过） |
 
-**发现并修复的缺陷**：`POST /api/venues` 传 `capacity: 1.5` 返回 201 且容量被截断为 1，违反契约（正整数）。修复：`application.yaml` 增加 `spring.jackson.deserialization.accept-float-as-int: false`。修复后实测 `venueId: 1.5` → 400（field=venueId），同类字段截断问题消除；`capacity: 1.5` 直接复测因 api 重启窗口返回 502 未补测，**建议提交前补发一条**（见 §7）。
+**发现并修复的缺陷**：`POST /api/venues` 传 `capacity: 1.5` 返回 201 且容量被截断为 1，违反契约（正整数）。修复：`application.yaml` 增加 `spring.jackson.deserialization.accept-float-as-int: false`。修复后实测 `venueId: 1.5` → 400（field=venueId），同类字段截断问题消除；`capacity: 1.5` 已在 `acceptance/p0-fixes`（413fb39）重建镜像后经 8088 入口复测通过：`capacity: 1.5` 与 `capacity: 20.0` 均 → 400（field=capacity，message=字段格式错误），`capacity: 10` → 201。
 
 ## 六、并发安全（第 5 项）✅
 
@@ -55,7 +55,7 @@
 | 项 | 内容 | 建议 |
 |---|---|---|
 | 6.1 数据持久化（README 8.3 评分点） | `docker compose down`（不带 -v）→ `up -d` → 原预约仍在 | **强烈建议补跑**，3 条命令：`PostJ` 创建一条预约 → `docker compose down` → `docker compose up -d` 后 `GET /api/reservations/{id}` 应为 200 |
-| capacity=1.5 直接复测 | `PostJ "$BASE/venues" "{""name"":""capfix-e"",""location"":""t"",""capacity"":1.5,""openTime"":""08:00:00"",""closeTime"":""22:00:00""}"` | 期望 400（field=capacity）；顺带完成 |
+| capacity=1.5 直接复测 | `PostJ "$BASE/venues" "{""name"":""capfix-e"",""location"":""t"",""capacity"":1.5,""openTime"":""08:00:00"",""closeTime"":""22:00:00""}"` | ✅ 已完成：400（field=capacity），见 §5 |
 | 6.2–6.6 初始化/隔离/凭据/时区 | 全新卷初始化、端口网络隔离、凭据 grep、UTC 审计 | 时间允许则补 |
 | 7 后端 mvn test | Java 21 + 临时 3307 端口跑 `mvnw test` | 可选（HTTP 层已回归） |
 | 8 Playwright | `E2E_BASE_URL=http://localhost:8088 npx playwright test` | 可选（升级后的用例已写好） |
@@ -73,5 +73,5 @@
 
 1. `docker compose down -v && docker compose up -d` 重置到种子数据（5 个场地、无预约）。
 2. 按第 3 项 8 步过一遍演示脚本（截图已备）。
-3. 补跑 §7 前两行（持久化 + capacity 复测）。
+3. 补跑 §7 第一行（持久化）；capacity 复测已完成（见 §5）。
 4. 备好本日志与 `CHANGELOG.md` 作为验收材料附件。
