@@ -51,7 +51,7 @@
 | dist/index.html 不含旧页 `loadVenues` | ✓ |
 | dist/index.html 引用 `/assets/` 带 hash 资源 | ✓ |
 
-已执行（2026-10-29，验收人执行）：Docker 镜像构建与 8088 冒烟通过（三服务健康、容器内 dist 产物断言通过、深链 200）；验收记录见 accept-logs。
+已执行（2026-10-29，验收人执行）：Docker 镜像构建与 8088 冒烟通过（三服务健康、容器内 dist 产物断言通过、深链 200）；验收记录见 [docs/acceptance-log.md](docs/acceptance-log.md)。
 
 ## 7. 后续建议（未执行，按需）
 
