@@ -1,0 +1,13 @@
+# 非敏感项。字符集、排序规则和 default-time-zone 写在 StatefulSet 的 args，与 compose.yaml 一致。
+# 密码在 Secret database-credentials，不放这里。
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-config
+  namespace: venue-booking
+  labels:
+    app: database
+data:
+  MYSQL_DATABASE: venue_booking
+  MYSQL_USER: venue_user
+  TZ: UTC
