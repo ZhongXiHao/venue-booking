@@ -75,6 +75,8 @@ public class FabricReportJobLauncher implements ReportJobLauncher {
                         .withNewMetadata().addToLabels("app", "report-job").endMetadata()
                         .withNewSpec()
                             .withRestartPolicy("Never")   // 失败由 Job 重建 Pod，不在原 Pod 里重启
+                            // 报告任务只访问数据库，不调用 Kubernetes API，不需要挂载 ServiceAccount 令牌
+                            .withAutomountServiceAccountToken(false)
                             .withContainers(buildContainer(runId))
                         .endSpec()
                     .endTemplate()

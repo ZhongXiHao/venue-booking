@@ -1,0 +1,70 @@
+# 定时报告：每天 02:00（Asia/Shanghai）统计最近 7 天（含当天）的场地利用率。
+# 和 API 用同一个镜像，以 report profile 启动，跑完一次就退出；没有 REPORT_RUN_ID，程序自己插入 SCHEDULED 记录。
+# 名字不能叫 report：它生成的 Job 名是 <名字>-<时间戳>，会和手动触发的 report-<id> 混在一起。
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: report-cron
+  namespace: venue-booking
+  labels:
+    app: report-job
+spec:
+  schedule: "0 2 * * *"
+  timeZone: Asia/Shanghai
+  # 上一次还没结束时跳过本次，不并发执行
+  concurrencyPolicy: Forbid
+  # 错过计划时刻（例如控制面短暂不可用）后，5 分钟内仍然补跑
+  startingDeadlineSeconds: 300
+  # 保留最近 3 次成功和 3 次失败的 Job，方便查看日志
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    metadata:
+      labels:
+        app: report-job
+        trigger: scheduled
+    spec:
+      backoffLimit: 2              # 失败最多重试 2 次；重试时程序按 Job 名找回同一条记录
+      activeDeadlineSeconds: 300   # 整个 Job 最多跑 5 分钟
+      template:
+        metadata:
+          labels:
+            app: report-job
+            trigger: scheduled
+        spec:
+          restartPolicy: Never
+          # 报告任务只访问数据库，不调用 Kubernetes API
+          automountServiceAccountToken: false
+          containers:
+            - name: report
+              image: venue-api:lab2
+              imagePullPolicy: IfNotPresent
+              envFrom:
+                - configMapRef:
+                    name: api-config
+              env:
+                - name: SPRING_PROFILES_ACTIVE
+                  value: report
+                # 报告任务自己不创建 Job，覆盖 api-config 里的 k8s
+                - name: REPORT_LAUNCHER
+                  value: noop
+                # 运行本任务的 Job 名，写进报告记录的 jobName
+                - name: REPORT_JOB_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                # false：schedule_key 精确到天（SCHEDULED:20261115），同一天只生成一份
+                - name: REPORT_SCHEDULE_DEMO
+                  value: "false"
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: database-credentials
+                      key: MYSQL_PASSWORD
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi

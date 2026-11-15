@@ -1,0 +1,12 @@
+# 定时报告（每天一次）。依赖 k8s/database 和 k8s/api（ConfigMap api-config）。
+# 在仓库根目录执行：
+#   kubectl apply -k k8s/jobs/report-cron
+# 演示时想每分钟跑一次，改用 k8s/jobs/report-cron-demo：
+#   kubectl apply -k k8s/jobs/report-cron-demo
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: venue-booking
+
+resources:
+  - cronjob.yaml

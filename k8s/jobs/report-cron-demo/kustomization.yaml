@@ -1,0 +1,23 @@
+# 演示用：在每日 CronJob 的基础上只改两处——每分钟执行一次、schedule_key 精确到分钟。
+# 其余内容（镜像、并发策略、重试、超时）与 ../report-cron/cronjob.yaml 完全相同。
+# 在仓库根目录执行：
+#   kubectl apply -k k8s/jobs/report-cron-demo
+# 演示结束后恢复为每日一次：
+#   kubectl apply -k k8s/jobs/report-cron
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../report-cron
+
+patches:
+  - target:
+      kind: CronJob
+      name: report-cron
+    patch: |-
+      - op: replace
+        path: /spec/schedule
+        value: "*/1 * * * *"
+      - op: replace
+        path: /spec/jobTemplate/spec/template/spec/containers/0/env/3/value
+        value: "true"

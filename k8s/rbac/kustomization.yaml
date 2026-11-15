@@ -1,0 +1,9 @@
+# 在仓库根目录执行（需要命名空间已存在，见 k8s/database）：
+#   kubectl apply -k k8s/rbac
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: venue-booking
+
+resources:
+  - api-job-creator.yaml

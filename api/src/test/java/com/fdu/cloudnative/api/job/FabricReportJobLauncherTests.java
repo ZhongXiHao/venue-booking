@@ -79,6 +79,8 @@ class FabricReportJobLauncherTests {
         assertEquals(300L, spec.getActiveDeadlineSeconds());     // 超时
         assertEquals(3600, spec.getTtlSecondsAfterFinished());   // 结束后自动清理
         assertEquals("Never", spec.getTemplate().getSpec().getRestartPolicy());
+        // 报告任务不调用 Kubernetes API，不挂载 ServiceAccount 令牌
+        assertEquals(false, spec.getTemplate().getSpec().getAutomountServiceAccountToken());
         assertEquals("report-job", spec.getTemplate().getMetadata().getLabels().get("app"));
     }
 
