@@ -1,0 +1,21 @@
+# SQL 只维护在 db/init。secret.example.yaml 不列入 resources。
+# 这些 SQL 在本目录之外。kubectl apply -k 默认拒绝读取。在仓库根目录部署：
+#   kubectl kustomize k8s/database --load-restrictor LoadRestrictionsNone | kubectl apply -f -
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: venue-booking
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - service-headless.yaml
+  - service.yaml
+  - statefulset.yaml
+
+configMapGenerator:
+  - name: database-init
+    files:
+      - 01-schema.sql=../../db/init/01-schema.sql
+      - 02-seed.sql=../../db/init/02-seed.sql
+      - 03-reports.sql=../../db/init/03-reports.sql
