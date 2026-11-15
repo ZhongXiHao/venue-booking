@@ -1,0 +1,17 @@
+# ClusterIP。应用继续使用 DB_HOST=database、DB_PORT=3306。
+# 不使用 NodePort、LoadBalancer 或 hostPort。
+apiVersion: v1
+kind: Service
+metadata:
+  name: database
+  namespace: venue-booking
+  labels:
+    app: database
+spec:
+  type: ClusterIP
+  selector:
+    app: database
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: mysql

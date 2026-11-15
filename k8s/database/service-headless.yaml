@@ -1,0 +1,18 @@
+# Headless：只给 StatefulSet 稳定身份（database-0.database-headless）。
+# 应用连接使用 ClusterIP Service database，不要把流量指到这里。
+apiVersion: v1
+kind: Service
+metadata:
+  name: database-headless
+  namespace: venue-booking
+  labels:
+    app: database
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app: database
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: mysql
