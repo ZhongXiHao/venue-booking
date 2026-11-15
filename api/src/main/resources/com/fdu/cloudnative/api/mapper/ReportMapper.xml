@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fdu.cloudnative.api.mapper.ReportMapper">
+
+    <!-- 列表的可选筛选条件 -->
+    <sql id="runFilters">
+        <where>
+            <if test="status != null and status != ''">AND status = #{status}</if>
+            <if test="triggerType != null and triggerType != ''">AND trigger_type = #{triggerType}</if>
+        </where>
+    </sql>
+
+    <!-- 按创建时间倒序；同一秒内创建的用 id 倒序兜底，保证翻页顺序稳定 -->
+    <select id="selectRunPage" resultType="com.fdu.cloudnative.api.entity.ReportRun">
+        SELECT *
+        FROM report_runs
+        <include refid="runFilters"/>
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="countRuns" resultType="long">
+        SELECT COUNT(*)
+        FROM report_runs
+        <include refid="runFilters"/>
+    </select>
+
+    <insert id="insertResults">
+        INSERT INTO report_results (run_id, venue_id, venue_name, reservation_count, total_minutes)
+        VALUES
+        <foreach collection="results" item="r" separator=",">
+            (#{runId}, #{r.venueId}, #{r.venueName}, #{r.reservationCount}, #{r.totalMinutes})
+        </foreach>
+    </insert>
+
+    <!--
+        从 venues 出发 LEFT JOIN，保证没有预约的场地（包括 DISABLED）也有一行。
+        状态和日期条件必须写在 ON 里：写到 WHERE 会把没有预约的场地过滤掉。
+        COUNT(r.id) 不计 NULL，所以无预约时为 0；SUM 无行时为 NULL，用 COALESCE 转 0。
+    -->
+    <select id="aggregateUsage" resultType="com.fdu.cloudnative.api.entity.ReportResult">
+        SELECT v.id                                                                           AS venue_id,
+               v.name                                                                         AS venue_name,
+               COUNT(r.id)                                                                    AS reservation_count,
+               COALESCE(SUM((TIME_TO_SEC(r.end_time) - TIME_TO_SEC(r.start_time)) DIV 60), 0) AS total_minutes
+        FROM venues v
+                 LEFT JOIN reservations r
+                           ON r.venue_id = v.id
+                               AND r.status = 'ACTIVE'
+                               AND r.reservation_date BETWEEN #{rangeStart} AND #{rangeEnd}
+        GROUP BY v.id, v.name
+        ORDER BY v.id
+    </select>
+</mapper>
