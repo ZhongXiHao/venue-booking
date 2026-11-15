@@ -1,0 +1,26 @@
+# API 与报告任务共用的非敏感配置。变量名就是应用读取的名字，Deployment、Job、CronJob 都用 envFrom 整体引用。
+# 数据库密码不在这里：由各工作负载从 Secret database-credentials 的 MYSQL_PASSWORD 引用。
+# DB_NAME、DB_USER 的值要和 k8s/database/configmap.yaml 里的 MYSQL_DATABASE、MYSQL_USER 保持一致。
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  namespace: venue-booking
+  labels:
+    app: api
+data:
+  TZ: UTC
+  DB_HOST: database
+  DB_PORT: "3306"
+  DB_NAME: venue_booking
+  DB_USER: venue_user
+  # 就绪探针把数据库也算进去：连不上数据库的副本不接收流量
+  MANAGEMENT_ENDPOINT_HEALTH_GROUP_READINESS_INCLUDE: readinessState,db
+  # 手动触发报告时由 API 调用 Kubernetes API 创建 Job（本地开发不设置，默认是 noop）
+  REPORT_LAUNCHER: k8s
+  # 报告 Job 使用的镜像，和 deployment.yaml 里 API 的镜像保持一致
+  REPORT_JOB_IMAGE: venue-api:lab2
+  # 报告 Job 引用的 ConfigMap（就是本文件）与数据库密码所在的 Secret
+  REPORT_JOB_CONFIG_MAP: api-config
+  REPORT_JOB_SECRET: database-credentials
+  REPORT_JOB_SECRET_PASSWORD_KEY: MYSQL_PASSWORD

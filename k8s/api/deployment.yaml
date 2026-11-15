@@ -1,0 +1,94 @@
+# API：2 个副本，连接同一个 MySQL。镜像用 minikube image load 载入，不从仓库拉取。
+# 依赖：命名空间、Secret database-credentials（见 k8s/database）和 ServiceAccount api（见 k8s/rbac）。
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: venue-booking
+  labels:
+    app: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0   # 滚动更新期间始终保持 2 个可用副本
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      # 用于创建报告 Job 的最小权限身份
+      serviceAccountName: api
+      affinity:
+        # 尽量把两个副本放到不同节点；节点不够时仍然允许调度
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app: api
+      containers:
+        - name: api
+          image: venue-api:lab2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: api-config
+          env:
+            # 响应头 X-Instance-Id 的值：处理该请求的 Pod 名
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            # 报告 Job 创建在 API 所在的命名空间
+            - name: REPORT_JOB_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            # 只取业务账号的密码，不注入 root 密码
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: database-credentials
+                  key: MYSQL_PASSWORD
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          # JVM 启动较慢：启动探针通过之前不做存活检查，最多等 30 × 5 = 150 秒
+          startupProbe:
+            httpGet:
+              path: /api/actuator/health/liveness
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
+          # 就绪：应用可以处理请求且数据库连得上，否则从 Service 摘除
+          readinessProbe:
+            httpGet:
+              path: /api/actuator/health/readiness
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          # 存活：只看进程自身状态，不包含数据库，数据库故障不会导致 API 被反复重启
+          livenessProbe:
+            httpGet:
+              path: /api/actuator/health/liveness
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3

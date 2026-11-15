@@ -1,0 +1,4 @@
+# report profile：作为 Job / CronJob 运行时使用，不启动 Web 服务器，跑完一次就退出
+spring:
+  main:
+    web-application-type: none

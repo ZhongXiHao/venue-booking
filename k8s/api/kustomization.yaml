@@ -1,0 +1,12 @@
+# 部署前先完成 k8s/database（命名空间、数据库、Secret）和 k8s/rbac（ServiceAccount）。
+# 在仓库根目录执行：
+#   kubectl apply -k k8s/api
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: venue-booking
+
+resources:
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml
