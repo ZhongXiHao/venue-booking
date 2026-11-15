@@ -40,6 +40,12 @@ public interface ReportMapper {
     long countRuns(@Param("status") String status,
                    @Param("triggerType") String triggerType);
 
+    @Select("SELECT * FROM report_runs WHERE schedule_key = #{scheduleKey}")
+    ReportRun selectByScheduleKey(@Param("scheduleKey") String scheduleKey);
+
+    @Select("SELECT * FROM report_runs WHERE job_name = #{jobName}")
+    ReportRun selectByJobName(@Param("jobName") String jobName);
+
     // 开始执行（含重试）：attempt 加 1，并清掉上一次失败留下的结束时间和错误信息
     @Update("UPDATE report_runs SET status = 'RUNNING', attempt = attempt + 1, " +
             "started_at = UTC_TIMESTAMP(), finished_at = NULL, error_message = NULL WHERE id = #{id}")

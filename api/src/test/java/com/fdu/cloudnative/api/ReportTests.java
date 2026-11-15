@@ -282,6 +282,25 @@ class ReportTests {
     }
 
     @Test
+    void scheduledRuns_lookupByKeyAndJobName_nullJobNamesCoexist() {
+        // 两条都没有 Job 名的定时记录可以并存（唯一键允许多个 NULL）
+        ReportRun first = newRun(TriggerType.SCHEDULED, "SCHEDULED:TEST-LOOKUP-1");
+        ReportRun second = newRun(TriggerType.SCHEDULED, "SCHEDULED:TEST-LOOKUP-2");
+        assertNull(reportMapper.getRunById(first.getId()).getJobName());
+
+        assertEquals(second.getId(), reportMapper.selectByScheduleKey("SCHEDULED:TEST-LOOKUP-2").getId());
+        assertNull(reportMapper.selectByScheduleKey("SCHEDULED:TEST-NOT-EXIST"));
+
+        reportMapper.updateJobName(first.getId(), "report-cron-test-lookup");
+        assertEquals(first.getId(), reportMapper.selectByJobName("report-cron-test-lookup").getId());
+        assertNull(reportMapper.selectByJobName("report-cron-test-none"));
+
+        // Job 名重复会撞唯一键：同一个 Job 重试时入口靠它找回原记录
+        assertThrows(DuplicateKeyException.class,
+                () -> reportMapper.updateJobName(second.getId(), "report-cron-test-lookup"));
+    }
+
+    @Test
     void aggregateThenStore_roundTrip() {
         // 统计出来的行可以直接交给 insertResults 保存
         reserve(1L, DAY1, "09:00:00", "10:00:00");
