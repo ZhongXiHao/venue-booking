@@ -1,8 +1,64 @@
-# 场地预约系统（云原生软件技术 Lab 1）
+# 场地预约系统（云原生软件技术 Lab 1 / Lab 2）
 
-前端 + 后端 API + 关系数据库，通过 Docker Compose 一键运行。
+前端 + 后端 API + 关系数据库的场地预约系统。
+
+- **Lab 1**：用 Docker Compose 一键运行。
+- **Lab 2**：迁移到 Kubernetes，API 多副本运行，并新增由 Job / CronJob 生成的"场地利用率报告"。
+
+两种运行方式都保留，互不影响。
+
+## 当前进度（Lab 2）
+
+更新于 2026-11-16。实验报告截止 2026-11-23。
+
+| 部分 | 内容 | 状态 |
+|---|---|---|
+| 数据库 | StatefulSet、Headless + ClusterIP Service、PVC、初始化脚本、ConfigMap / Secret | ✅ 已合并 |
+| 后端 | 健康检查、实例标识、报告接口、报告生成、由 API 创建 Job、CronJob | ✅ 已合并 |
+| 后端清单 | API Deployment（2 副本）、Service、RBAC、CronJob | ✅ 已合并 |
+| 前端 | 报告列表与详情页、前端 Deployment / Service、Nginx 配置外部化 | ✅ 已合并 |
+| 节点检查 | `node-check` DaemonSet | ✅ 已合并 |
+| 验证：并发预约、手动 Job、CronJob | [docs/evidence](docs/evidence/README.md) 第 02–04 项 | ✅ 通过 |
+| 验证：API 多副本与自愈、数据库持久化 | [docs/evidence](docs/evidence/README.md) 第 01、05 项 | ⬜ 待执行 |
+| 验证：前端页面与 DaemonSet | [docs/lab2-frontend-evidence.md](docs/lab2-frontend-evidence.md) | ⬜ 待验收 |
+| 实验报告 | — | ⬜ 未开始 |
+
+整套系统已在 3 节点 minikube 上完整部署并联通过一次（数据库、API、前端、DaemonSet、CronJob）。
 
 ## 架构
+
+### Kubernetes（Lab 2）
+
+所有资源都在命名空间 `venue-booking`。
+
+```
+浏览器 ──(kubectl port-forward 8088)──▶ Service frontend:80
+                                          │
+                                 Deployment frontend（1 副本，Nginx）
+                                          │  /api/ 反向代理
+                                          ▼
+                                    Service api:8080
+                                          │
+                          Deployment api（2 副本，Spring Boot）
+                           │                         │
+                           │ database:3306           │ 调用 Kubernetes API 创建 Job
+                           ▼                         ▼
+              StatefulSet database-0（MySQL）   Job report-<id>（手动触发的报告）
+                    │                                 │
+              PVC data-database-0                     │ 同一个镜像，以 report 模式运行，
+                    ▲                                 │ 跑完一次就退出
+                    └─────────────────────────────────┘
+                    ▲
+        CronJob report-cron ──▶ Job report-cron-<时间戳>（定时报告）
+
+DaemonSet node-check：每个节点一个 Pod，定期检查 frontend Service 是否可达
+```
+
+- 前端、API、数据库都只有 ClusterIP Service，不对集群外暴露。
+- API 用 ServiceAccount `api`，只被授予"在本命名空间创建 Job"这一项权限。
+- 数据库密码只存在于 Secret `database-credentials`，不在镜像、ConfigMap 和仓库里。
+
+### Docker Compose（Lab 1）
 
 ```
 浏览器 → frontend（nginx，:8088 对外）
@@ -21,16 +77,179 @@
 
 ```
 venue-booking/
-├── compose.yaml
-├── .env.example          # 复制为 .env 使用（.env 不提交）
-├── .gitignore
-├── api/                  # 后端（Spring Boot + Dockerfile）
-├── frontend/             # 前端（Vue 3 + Vite 构建为 dist，nginx 提供静态与反代）
-├── db/init/              # 建表与种子数据（首次初始化时自动执行）
-└── docs/contract.md      # API 契约
+├── compose.yaml              # Lab 1：Docker Compose 部署
+├── compose.dev.yaml          # 本地开发：只给数据库加宿主机端口 3307
+├── .env.example              # 复制为 .env 使用（.env 不提交）
+├── api/                      # 后端（Spring Boot + Dockerfile）
+├── frontend/                 # 前端（Vue 3 + Vite，nginx 提供静态文件与反向代理）
+├── db/init/                  # 建表与种子数据（数据卷首次初始化时执行）
+├── k8s/
+│   ├── database/             # 命名空间、MySQL StatefulSet、Service、ConfigMap、Secret 示例
+│   ├── rbac/                 # API 创建 Job 所需的 ServiceAccount、Role、RoleBinding
+│   ├── api/                  # api-config、API Deployment、Service
+│   ├── frontend/             # 前端 Deployment、Service（Nginx 配置生成为 ConfigMap）
+│   ├── node-check/           # 节点检查 DaemonSet
+│   └── jobs/
+│       ├── report-cron/      # 定时报告 CronJob（每天 02:00）
+│       └── report-cron-demo/ # 演示用：每分钟一次
+└── docs/
+    ├── contract.md               # Lab 1 接口契约
+    ├── contract-lab2.md          # Lab 2 新增：报告接口与 Job / CronJob 约定
+    ├── evidence/                 # Lab 2 验证记录与原始证据
+    ├── lab2-frontend-guide.md    # 前端实施与部署说明
+    ├── lab2-frontend-evidence.md # 前端验收清单
+    └── acceptance-log.md         # Lab 1 验收日志
 ```
 
-## 快速开始
+## 快速开始：Kubernetes（Lab 2）
+
+下面的命令在**仓库根目录**、bash 环境里执行（Windows 用 WSL 或 Git Bash）。以 minikube 为例，其他集群只有"载入镜像"一步不同。
+
+### 0. 准备
+
+- Docker、kubectl，以及一个可用的集群。想看到 DaemonSet 在多个节点上的效果，建议多节点，例如：
+
+  ```bash
+  minikube start --nodes 3
+  ```
+
+- 准备 `.env`（数据库密码从这里读取，不要提交）：
+
+  ```bash
+  cp .env.example .env
+  ```
+
+  `.env` 里的 `MYSQL_DATABASE`、`MYSQL_USER` 保持示例值（`venue_booking`、`venue_user`），清单里的 ConfigMap 用的是这两个值。
+
+### 1. 构建镜像并载入集群
+
+```bash
+docker build -t venue-api:lab2 ./api
+```
+
+```bash
+docker build -t venue-frontend:lab2 ./frontend
+```
+
+```bash
+minikube image load venue-api:lab2
+```
+
+```bash
+minikube image load venue-frontend:lab2
+```
+
+- minikube 用了自定义 profile 时，每条 `minikube` 命令都要加 `-p <profile 名>`。
+- kind 用 `kind load docker-image <镜像> --name <集群名>`。
+- `node-check` 用的是 `busybox:1.37.0`。节点拉不到 Docker Hub 时，先在本机 `docker pull busybox:1.37.0`，再同样 `minikube image load`。
+
+### 2. 命名空间与数据库密码
+
+```bash
+kubectl apply -f k8s/database/namespace.yaml
+```
+
+从 `.env` 创建 Secret（只取两个密码，值不会出现在命令行历史里）：
+
+```bash
+kubectl create secret generic database-credentials -n venue-booking \
+  --from-literal=MYSQL_ROOT_PASSWORD="$(grep '^MYSQL_ROOT_PASSWORD=' .env | cut -d= -f2- | tr -d '\r')" \
+  --from-literal=MYSQL_PASSWORD="$(grep '^MYSQL_PASSWORD=' .env | cut -d= -f2- | tr -d '\r')"
+```
+
+PowerShell 的写法见 [k8s/database/secret.example.yaml](k8s/database/secret.example.yaml) 文件头。
+
+### 3. 按顺序部署
+
+顺序不能换：API 依赖数据库、Secret 和 ServiceAccount；前端的 Nginx 启动时要解析 `api` 这个 Service 名，所以必须在 API 之后。
+
+数据库（初始化 SQL 在目录之外，不能直接 `apply -k`）：
+
+```bash
+kubectl kustomize k8s/database --load-restrictor LoadRestrictionsNone | kubectl apply -f -
+```
+
+```bash
+kubectl -n venue-booking rollout status statefulset/database --timeout=300s
+```
+
+API 的权限和 API 本身：
+
+```bash
+kubectl apply -k k8s/rbac
+```
+
+```bash
+kubectl apply -k k8s/api
+```
+
+```bash
+kubectl -n venue-booking rollout status deployment/api --timeout=240s
+```
+
+前端（同样要用 `--load-restrictor`）：
+
+```bash
+kubectl kustomize k8s/frontend --load-restrictor LoadRestrictionsNone | kubectl apply -f -
+```
+
+```bash
+kubectl -n venue-booking rollout status deployment/frontend --timeout=120s
+```
+
+节点检查和定时报告：
+
+```bash
+kubectl apply -k k8s/node-check
+```
+
+```bash
+kubectl apply -k k8s/jobs/report-cron
+```
+
+### 4. 确认并访问
+
+```bash
+kubectl -n venue-booking get pods -o wide
+```
+
+应当看到：`database-0`、两个 `api-…`、一个 `frontend-…`、每个节点一个 `node-check-…`，全部 `1/1 Running`。
+
+```bash
+kubectl -n venue-booking port-forward service/frontend 8088:80
+```
+
+保持这个命令运行，浏览器打开 http://localhost:8088 。报告页在 http://localhost:8088/reports 。
+
+### 5. 常用操作
+
+| 想做什么 | 怎么做 |
+|---|---|
+| 手动生成一份报告 | 在报告页选日期范围后点生成；几秒后状态变为成功 |
+| 看报告 Job | `kubectl -n venue-booking get jobs`，日志用 `kubectl -n venue-booking logs job/report-<id>` |
+| 看定时报告（不想等到 02:00） | `kubectl apply -k k8s/jobs/report-cron-demo` 换成每分钟一次；看完用 `kubectl apply -k k8s/jobs/report-cron` 换回来 |
+| 制造一次可控的失败 | `kubectl -n venue-booking delete rolebinding api-report-job-creator`，再生成报告，会得到 503 和一条失败记录。**验证完必须恢复**：`kubectl apply -k k8s/rbac` |
+| 确认两个 API 副本都在处理请求 | 多刷新几次页面，看 `/api/...` 响应头里的 `X-Instance-Id` |
+| 看节点检查结果 | `kubectl -n venue-booking logs -l app=node-check --prefix=true --tail=5` |
+| 进数据库查询 | `kubectl -n venue-booking exec -it database-0 -- sh -c 'mysql --default-character-set=utf8mb4 -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"'` |
+| 改了后端代码后更新 | 重新 `docker build`、`minikube image load venue-api:lab2`，再 `kubectl -n venue-booking rollout restart deployment/api` |
+| 全部清掉重来 | `kubectl delete namespace venue-booking`（数据库数据也会删除） |
+
+更细的验证步骤和已有的结果见 [docs/evidence/README.md](docs/evidence/README.md)；前端部分见 [docs/lab2-frontend-guide.md](docs/lab2-frontend-guide.md)。
+
+### 6. Kubernetes 下的常见问题
+
+- **Pod 是 `ErrImageNeverPull` / `ImagePullBackOff`**：镜像没有载入集群。检查 `minikube image ls` 里有没有 `venue-api:lab2`、`venue-frontend:lab2`；多 profile 时确认 `-p` 指向了正确的集群。
+- **`database-0` 一直是 `CreateContainerConfigError`**：Secret `database-credentials` 还没创建，按第 2 步创建后会自动恢复。
+- **前端 `CrashLoopBackOff`**：通常是 `api` Service 还不存在，Nginx 解析不了上游。先部署 `k8s/api`，再重启前端。
+- **API 一直不就绪**：就绪探针包含数据库检查。先看 `database-0` 是否就绪，再看 `kubectl -n venue-booking logs deployment/api`。
+- **生成报告总是失败，原因是"没有创建 Job 的权限（403）"**：RoleBinding 不在。执行 `kubectl apply -k k8s/rbac`。
+- **生成报告失败，原因是"同名 Job 已存在（409）"**：重建过数据库后，报告 id 从 1 重新开始，而之前的 `report-<id>` Job 还没被自动清理。执行 `kubectl -n venue-booking delete jobs -l app=report-job`。
+- **改了 `db/init/*.sql` 不生效**：初始化脚本只在数据卷为空时执行。需要 `kubectl delete namespace venue-booking` 后重新部署，或者删掉 PVC `data-database-0` 再重建数据库。
+- **容器里用 `mysql` 查询，中文显示成 `?`**：加 `--default-character-set=utf8mb4`。
+- **看失败的详细原因**：页面和接口里的 `errorMessage` 只给出一句分类后的原因；完整信息在 API 日志里，用 `kubectl -n venue-booking logs -l app=api --prefix=true --tail=500 | grep -A5 "创建报告 Job 失败"`（`-l app=api` 会同时看两个副本）。
+
+## 快速开始：Docker Compose（Lab 1）
 
 ```bash
 cp .env.example .env      # 按需修改密码
@@ -40,9 +259,11 @@ docker compose ps         # 三个服务应为 running，database 为 healthy
 
 浏览器打开 http://localhost:8088
 
+Compose 环境里没有 Kubernetes，报告接口仍然可用，但创建的报告会一直停在"处理中"：此时 API 用的是不创建 Job 的空实现（`REPORT_LAUNCHER` 默认为 `noop`）。
+
 ## 接口列表
 
-详见 [docs/contract.md](docs/contract.md)。
+Lab 1 的接口详见 [docs/contract.md](docs/contract.md)，报告接口详见 [docs/contract-lab2.md](docs/contract-lab2.md) 第 9 节。
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
@@ -53,6 +274,26 @@ docker compose ps         # 三个服务应为 running，database 为 healthy
 | GET | /api/reservations | 预约列表（分页、可筛选） |
 | GET | /api/reservations/{id} | 预约详情 |
 | POST | /api/reservations/{id}/cancel | 取消预约（逻辑取消） |
+| POST | /api/reports | 创建一次报告任务，返回 202（Lab 2） |
+| GET | /api/reports | 报告列表（分页，可按状态和触发方式筛选）（Lab 2） |
+| GET | /api/reports/{id} | 报告详情，成功后带各场地的统计结果（Lab 2） |
+| GET | /api/actuator/health/liveness、/readiness | 健康检查，供探针使用（Lab 2） |
+
+所有 `/api/` 响应都带 `X-Instance-Id` 响应头，值是处理该请求的 Pod 名。
+
+### 后端的环境变量
+
+| 变量 | 说明 |
+|---|---|
+| `DB_HOST`、`DB_PORT`、`DB_NAME`、`DB_USER`、`DB_PASSWORD` | 数据库连接。Kubernetes 下前四项来自 ConfigMap `api-config`，密码来自 Secret |
+| `POD_NAME` | 实例标识，由 Downward API 注入 |
+| `REPORT_LAUNCHER` | `noop`（默认，不创建 Job）或 `k8s`（调用 Kubernetes API 创建 Job） |
+| `REPORT_JOB_IMAGE`、`REPORT_JOB_NAMESPACE`、`REPORT_JOB_CONFIG_MAP`、`REPORT_JOB_SECRET`、`REPORT_JOB_SECRET_PASSWORD_KEY` | 创建报告 Job 时使用的镜像和资源名 |
+| `SPRING_PROFILES_ACTIVE=report` | 以报告模式运行：不启动 Web，跑完一次就退出 |
+| `REPORT_RUN_ID` | 报告模式下要执行的记录 id；不设置时按定时任务处理 |
+| `REPORT_JOB_NAME`、`REPORT_SCHEDULE_DEMO` | 定时任务用：写进记录的 Job 名；是否按分钟生成防重复的 key |
+
+> 以下"前端对接指南""联调指南""数据持久化验证""常见问题"四节写于 Lab 1，针对的是 Docker Compose 环境。其中的接口约定和格式在 Kubernetes 下同样适用。
 
 ## 前端对接指南
 
@@ -225,7 +466,7 @@ docker compose up -d
 docker volume ls             # 可见 venue-booking_db_data
 ```
 
-## 常见问题
+## 常见问题（Docker Compose）
 
 - **打开 8088 仍是旧页面（只有场地列表，没有创建预约等导航）**：前端镜像还是旧静态页。执行 `docker compose build --no-cache frontend && docker compose up -d frontend` 后强制刷新浏览器（Ctrl+F5）。
 - **改了 `db/init/*.sql` 不生效**：初始化脚本只在 Volume 首次创建时执行。需要重来：`docker compose down -v` 后再 `up`
@@ -235,14 +476,20 @@ docker volume ls             # 可见 venue-booking_db_data
 
 ## 小组分工
 
-| 成员  | 负责 |
-|-----|---|
-| 鍾錫豪 | 后端 API（实体、校验、冲突逻辑、错误处理）+ `api/Dockerfile` |
-| 费天睿 | 前端页面 + `frontend/Dockerfile` + `nginx.conf` |
-| 關喬賢 | 数据库脚本、`compose.yaml`、`.env.example`、联调验收、实验报告整理 |
+| 成员 | Lab 1 | Lab 2 |
+|---|---|---|
+| 鍾錫豪 | 后端 API（实体、校验、冲突逻辑、错误处理）+ `api/Dockerfile` | 后端：健康检查与实例标识、报告接口与生成逻辑、由 API 创建 Job、CronJob；API Deployment / Service、RBAC 清单；并发、Job、CronJob 的验证 |
+| 费天睿 | 前端页面 + `frontend/Dockerfile` + `nginx.conf` | 前端：报告列表与详情页；前端 Deployment / Service、Nginx 配置外部化；`node-check` DaemonSet |
+| 關喬賢 | 数据库脚本、`compose.yaml`、`.env.example`、联调验收、实验报告整理 | 数据库与集群：MySQL StatefulSet、Service、PVC、初始化、ConfigMap / Secret；多副本与持久化的验证 |
 
 ## 设计说明
 
 - **取消预约**：逻辑取消（`status = CANCELLED`），保留历史；冲突检查只比对 `ACTIVE`
-- **配置外部化**：数据库连接信息由 `.env` → Compose `environment` → 环境变量注入后端；镜像中无密码
-- **并发冲突**：创建预约在事务内锁定场地行后再检查冲突
+- **配置外部化**：连接信息和资源名都通过环境变量注入。Compose 下来自 `.env`；Kubernetes 下非敏感项来自 ConfigMap，密码来自 Secret。镜像和仓库中都没有密码
+- **并发冲突**：创建预约在事务内锁定场地行后再检查冲突，所以多个 API 副本同时处理重叠预约时也只有一个成功
+- **一个镜像，两种运行方式**：API 和报告任务用同一个镜像。默认启动为常驻的 Web 服务；加上 `SPRING_PROFILES_ACTIVE=report` 则不启动 Web，执行一次报告后以退出码 0 或 1 结束，Kubernetes 据此判断 Job 成败
+- **创建 Job 的方式可替换**：服务层只依赖一个接口，由 `REPORT_LAUNCHER` 决定用空实现还是真正调用 Kubernetes 的实现，本地开发和测试不需要集群
+- **报告的重试与防重复**：重试更新同一条记录，结果先清除再写入，并与"置为成功"在同一个事务里；已成功的记录不会重算。定时报告靠数据库唯一键防止同一计划时刻生成两份，CronJob 另设 `concurrencyPolicy: Forbid`
+- **最小权限**：API 只能在自己的命名空间里创建 Job，不能查看或删除 Job，也不能读 Secret；报告任务的 Pod 不挂载 ServiceAccount 令牌
+- **探针分工**：就绪探针包含数据库，连不上数据库的副本不接收流量；存活探针不包含，数据库故障不会导致 API 被反复重启
+- **失败可追踪**：报告记录里只保存一句分类后的失败原因（会显示给用户），完整的异常信息写在 API 日志里
