@@ -4,14 +4,14 @@
 
 ## 总览
 
-| 编号 | 验证项 | 负责人 | 子目录 | 状态 |
-|---|---|---|---|---|
-| 01 | API 多副本与 Pod 自愈 | 数据库同学 | `01-replicas/` | ⬜ 未开始 |
-| 02 | 多副本下的并发预约 | 后端 | `02-concurrency/` | ✅ 通过 |
-| 03 | 手动触发报告 Job（含失败路径） | 后端 | `03-job/` | ✅ 通过 |
-| 04 | CronJob 定时报告 | 后端 | `04-cronjob/` | ✅ 通过 |
-| 05 | 数据库持久化 | 数据库同学 | `05-persistence/` | ⬜ 未开始 |
-| 06 | 前端页面（报告页状态变化与结果表） | 前端 | `06-frontend/` | ⬜ 未开始 |
+| 编号 | 验证项               | 负责人   | 子目录               | 状态    |
+|----|-------------------|-------|-------------------|-------|
+| 01 | API 多副本与 Pod 自愈   | 数据库同学 | `01-replicas/`    | ⬜ 未开始 |
+| 02 | 多副本下的并发预约         | 后端    | `02-concurrency/` | ✅ 通过  |
+| 03 | 手动触发报告 Job（含失败路径） | 后端    | `03-job/`         | ✅ 通过  |
+| 04 | CronJob 定时报告      | 后端    | `04-cronjob/`     | ✅ 通过  |
+| 05 | 数据库持久化            | 数据库同学 | `05-persistence/` | ⬜ 未开始 |
+| 06 | 前端页面（报告页状态变化与结果表） | 前端    | `06-frontend/`    | ⬜ 未开始 |
 
 状态用：⬜ 未开始 / 🟡 进行中 / ✅ 通过 / ❌ 未通过（写明原因）。
 
@@ -29,16 +29,16 @@
 
 执行验证前填写一次，环境变了再更新。
 
-| 项目 | 值 |
-|---|---|
-| 集群 | minikube，profile `k8s-lab`，3 个节点（1 个控制面 + 2 个 worker），docker 驱动，containerd 运行时 |
-| Kubernetes 版本 | 服务端 v1.37.0，kubectl v1.34.1（见 `00-version.txt`） |
-| 节点列表 | `k8s-lab`、`k8s-lab-m02`、`k8s-lab-m03`，见 `00-nodes.txt` |
-| 命名空间 | `venue-booking` |
-| API 镜像 | `venue-api:lab2` |
-| 前端镜像 | （前端填写；02–04 验证时前端尚未部署） |
-| 代码版本（commit） | `8185464`（`main`） |
-| 验证日期 | 02–04：2026-11-15 |
+| 项目            | 值                                                                              |
+|---------------|--------------------------------------------------------------------------------|
+| 集群            | minikube，profile `k8s-lab`，3 个节点（1 个控制面 + 2 个 worker），docker 驱动，containerd 运行时 |
+| Kubernetes 版本 | 服务端 v1.37.0，kubectl v1.34.1（见 `00-version.txt`）                                |
+| 节点列表          | `k8s-lab`、`k8s-lab-m02`、`k8s-lab-m03`，见 `00-nodes.txt`                         |
+| 命名空间          | `venue-booking`                                                                |
+| API 镜像        | `venue-api:lab2`                                                               |
+| 前端镜像          | （前端填写；02–04 验证时前端尚未部署）                                                         |
+| 代码版本（commit）  | `8185464`（`main`）                                                              |
+| 验证日期          | 02–04：2026-11-15                                                               |
 
 02–04 是在后端同学本机的集群上做的，当时库里已有之前联调留下的数据（1 条预约、26 条报告记录），所以记录 id 不是从 1 开始。01、05、06 如果在别的环境执行，请在各自小节写明。
 
@@ -54,11 +54,9 @@ kubectl get nodes -o wide > docs/evidence/00-nodes.txt
 kubectl get all,pvc,cm,sa,role,rolebinding,cronjob -n venue-booking > docs/evidence/00-resources.txt
 ```
 
----
-
 ## 01 API 多副本与 Pod 自愈
 
-- 负责人：数据库同学
+- 负责人：数据库
 - 执行时间：
 - 状态：⬜
 
@@ -113,13 +111,11 @@ kubectl get pods -n venue-booking -l app=api -o wide > docs/evidence/01-replicas
 
 **结论**
 
----
-
 ## 02 多副本下的并发预约
 
 - 负责人：后端
 - 执行时间：2026-11-15 22:38（CST）
-- 执行人：后端（AI 助手协同执行）
+- 执行人：后端
 - 状态：✅ 通过
 
 **要证明什么**
@@ -141,7 +137,7 @@ kubectl get pods -n venue-booking -l app=api -o wide > docs/evidence/01-replicas
 ```bash
 BODY='{"venueId":"1","bookerName":"并发测试","reservationDate":"2026-11-25","startTime":"14:00:00","endTime":"15:00:00","purpose":"并发验证-相同时段"}'
 for P in $(kubectl get pod -n venue-booking -l app=api -o jsonpath='{.items[*].metadata.name}'); do
-  kubectl exec -n venue-booking "$P" -- sh -c "for i in \$(seq 1 10); do curl -s -o /dev/null -w '%{http_code} %header{x-instance-id}\n' -X POST http://localhost:8080/api/reservations -H 'Content-Type: application/json' -d '$BODY' & done; wait" > "docs/evidence/02-concurrency/01-same-slot-$P.txt" &
+  kubectl exec -n venue-booking "$P" -- sh -c "for i in \$(seq 1 10); do curl -s -o /dev/null -w '%{http_code} %header{x-instance-id}\n' -X POST http://localhost:8080/api/reservations -H 'Content-Type: application/json' -d '$BODY' & done; wait" > "docs/evidence/02-concurrency/01-same-slot-$P.txt" 2>&1 &
 done; wait
 ```
 
@@ -161,10 +157,10 @@ kubectl exec -n venue-booking database-0 -- sh -c 'mysql --default-character-set
 
 两轮各 20 个请求，结果相同：
 
-| 轮次 | 201 | 409 | 成功的请求由谁处理 | 另一个 Pod |
-|---|---|---|---|---|
-| 相同时段 | 1 | 19 | `api-7d87cc6995-f68ww` | `api-7d87cc6995-xcm6x`：10 个全部 409 |
-| 部分重叠 | 1 | 19 | `api-7d87cc6995-f68ww` | `api-7d87cc6995-xcm6x`：10 个全部 409 |
+| 轮次   | 201 | 409 | 成功的请求由谁处理              | 另一个 Pod                           |
+|------|-----|-----|------------------------|-----------------------------------|
+| 相同时段 | 1   | 19  | `api-7d87cc6995-f68ww` | `api-7d87cc6995-xcm6x`：10 个全部 409 |
+| 部分重叠 | 1   | 19  | `api-7d87cc6995-f68ww` | `api-7d87cc6995-xcm6x`：10 个全部 409 |
 
 数据库里"并发测试"的预约只有 2 条，每轮 1 条，都是 `ACTIVE`：
 
@@ -181,6 +177,10 @@ id  venue_id  reservation_date  start_time  end_time  status  booker_name
 - 同一个 Pod 内的 10 个请求是真正并发的。两个 Pod 的请求由两条 `kubectl exec` 分别发起，启动时间有几十到几百毫秒的差异，不能保证跨 Pod 精确同时到达。
 - 即便如此，`xcm6x` 的请求被拒绝，依据的是 `f68ww` 写入的预约，这只能通过数据库判断，证明冲突检查不依赖单个进程的内存状态。
 
+**截图**
+
+![并发测试](02-concurrency/01-same-slot-api.png)
+
 **证据文件**
 
 - `02-concurrency/01-same-slot-<pod>.txt`、`02-same-slot-summary.txt`
@@ -190,8 +190,6 @@ id  venue_id  reservation_date  start_time  end_time  status  booker_name
 **结论**
 
 通过。多副本下重叠预约只成功一个，数据库中没有冲突记录。
-
----
 
 ## 03 手动触发报告 Job（含失败路径）
 
@@ -281,15 +279,15 @@ kubectl apply -k k8s/rbac
 
 成功路径：
 
-| 检查点 | 结果 |
-|---|---|
-| 创建接口 | `202`，由 `api-7d87cc6995-xcm6x` 处理，返回 id 27、`jobName` 为 `report-27` |
-| 创建后立即查询 | `PENDING` |
-| Job | `report-27`，`Complete 1/1`，用时 9 秒 |
-| Job 设置 | `backoffLimit: 2`、`activeDeadlineSeconds: 300`、`ttlSecondsAfterFinished: 3600`，标签 `run-id: "27"`，`automountServiceAccountToken: false` |
-| Job 日志 | 以 `report` profile 启动；`Generating report: runId=27, range=2026-11-23..2026-11-29, attempt=1`；`Report generated: runId=27, rows=5` |
-| 完成后查询 | `SUCCESS`，`attempt` 为 1，5 个场地各一行 |
-| 与预约数据对照 | 报告：场地 1 为 2 次、120 分钟，其余场地为 0。SQL 直接统计：场地 1 有 2 条、120 分钟。两者一致 |
+| 检查点     | 结果                                                                                                                                     |
+|---------|----------------------------------------------------------------------------------------------------------------------------------------|
+| 创建接口    | `202`，由 `api-7d87cc6995-xcm6x` 处理，返回 id 27、`jobName` 为 `report-27`                                                                     |
+| 创建后立即查询 | `PENDING`                                                                                                                              |
+| Job     | `report-27`，`Complete 1/1`，用时 9 秒                                                                                                      |
+| Job 设置  | `backoffLimit: 2`、`activeDeadlineSeconds: 300`、`ttlSecondsAfterFinished: 3600`，标签 `run-id: "27"`，`automountServiceAccountToken: false` |
+| Job 日志  | 以 `report` profile 启动；`Generating report: runId=27, range=2026-11-23..2026-11-29, attempt=1`；`Report generated: runId=27, rows=5`      |
+| 完成后查询   | `SUCCESS`，`attempt` 为 1，5 个场地各一行                                                                                                       |
+| 与预约数据对照 | 报告：场地 1 为 2 次、120 分钟，其余场地为 0。SQL 直接统计：场地 1 有 2 条、120 分钟。两者一致                                                                           |
 
 最小权限（`api` 这个 ServiceAccount）：
 
@@ -305,13 +303,13 @@ jobs create (namespace default): no
 
 失败路径：
 
-| 检查点 | 结果 |
-|---|---|
-| 创建接口 | `503`，`code` 为 `REPORT_JOB_CREATE_FAILED`，由 `api-7d87cc6995-f68ww` 处理 |
-| 记录 | id 28，`FAILED`，`attempt` 为 0，`errorMessage` 为 `创建 Job 失败：… jobs.batch is forbidden: User "system:serviceaccount:venue-booking:api" cannot create resource "jobs" …` |
-| 集群里 | 没有 `report-28` 这个 Job（`NotFound`） |
-| API 日志 | 有一条 `WARN 创建报告 Job 失败，runId=28` 和完整堆栈 |
-| 恢复 | 重新 `apply -k k8s/rbac` 后，`jobs create` 回到 yes |
+| 检查点    | 结果                                                                                                                                                                  |
+|--------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 创建接口   | `503`，`code` 为 `REPORT_JOB_CREATE_FAILED`，由 `api-7d87cc6995-f68ww` 处理                                                                                               |
+| 记录     | id 28，`FAILED`，`attempt` 为 0，`errorMessage` 为 `创建 Job 失败：… jobs.batch is forbidden: User "system:serviceaccount:venue-booking:api" cannot create resource "jobs" …` |
+| 集群里    | 没有 `report-28` 这个 Job（`NotFound`）                                                                                                                                   |
+| API 日志 | 有一条 `WARN 创建报告 Job 失败，runId=28` 和完整堆栈                                                                                                                               |
+| 恢复     | 重新 `apply -k k8s/rbac` 后，`jobs create` 回到 yes                                                                                                                       |
 
 **证据文件**
 
@@ -319,19 +317,31 @@ jobs create (namespace default): no
 - `03-job/08-rbac.txt`：权限检查
 - `03-job/09-failure-response.txt` 至 `13-api-log-failure.txt`：失败路径与恢复
 
+**截图**
+
+手动创建 Job 后，Job 状态：
+
+![手动创建 Job](03-job/01create-manual-job-and-check-status.png)
+
+rbac 检查：
+
+![rbac](03-job/02-rbac.png)
+
+rbac 失败后，创建 Job 接口返回 503：
+
+![rbac-failure](03-job/03-rbac-failure-record.png)
+
 **结论**
 
 通过。手动触发能创建并完成 Job，结果与预约数据一致；创建失败时接口返回 503，记录、错误信息和 API 日志三处都能追踪到原因。
 
 没有覆盖的情况：Job 已创建但运行中失败并按 `backoffLimit` 重试（这部分只有单元测试和本地模拟，没有在集群上制造）。
 
----
-
 ## 04 CronJob 定时报告
 
 - 负责人：后端
 - 执行时间：2026-11-15 22:39–22:43（CST）
-- 执行人：后端（AI 助手协同执行）
+- 执行人：后端
 - 状态：✅ 通过
 
 **要证明什么**
@@ -391,9 +401,9 @@ CronJob 配置（演示周期下导出）：`schedule: '*/1 * * * *'`、`timeZon
 
 ```
 id  trigger_type  range_start  range_end   status   job_name              schedule_key            attempt
-29  SCHEDULED     2026-11-09   2026-11-15  SUCCESS  report-cron-29912560  SCHEDULED:202611152240  1
-30  SCHEDULED     2026-11-09   2026-11-15  SUCCESS  report-cron-29912561  SCHEDULED:202611152241  1
-32  SCHEDULED     2026-11-09   2026-11-15  SUCCESS  report-cron-29912562  SCHEDULED:202611152242  1
+29  SCHEDULED   2026-11-09   2026-11-15  SUCCESS  report-cron-29912560  SCHEDULED:202611152240  1
+30  SCHEDULED   2026-11-09   2026-11-15  SUCCESS  report-cron-29912561  SCHEDULED:202611152241  1
+32  SCHEDULED   2026-11-09   2026-11-15  SUCCESS  report-cron-29912562  SCHEDULED:202611152242  1
 ```
 
 - 统计窗口是最近 7 天（含当天）：2026-11-09 至 2026-11-15。
@@ -403,7 +413,8 @@ id  trigger_type  range_start  range_end   status   job_name              schedu
 防重复：
 
 - 22:41:20 手动创建 `report-cron-dup`，它和计划 Job `report-cron-29912561` 落在同一分钟。
-- `report-cron-dup` 的日志：`Reusing existing report run: runId=30, scheduleKey=SCHEDULED:202611152241, jobName=report-cron-29912561`，接着 `Report run 30 is already SUCCESS, skipping.`，Job 以成功结束。
+- `report-cron-dup` 的日志：
+  `Reusing existing report run: runId=30, scheduleKey=SCHEDULED:202611152241, jobName=report-cron-29912561`，接着 `Report run 30 is already SUCCESS, skipping.`，Job 以成功结束。
 - 每个 `schedule_key` 都只有 1 条记录，`SCHEDULED:202611152241` 没有出现第二条。
 - 记录 id 从 30 跳到 32：31 是那次被唯一键拒绝的插入消耗掉的自增值，这也说明重复插入确实发生并被数据库拦下。
 - 记录 30 的 `attempt` 仍是 1，结果没有被重算。
@@ -412,9 +423,21 @@ id  trigger_type  range_start  range_end   status   job_name              schedu
 
 **说明**
 
-- `report-cron-29912560` 的 Job 在收集证据时已被 `successfulJobsHistoryLimit: 3` 清理，所以 `04-jobs.txt` 里没有它，它的日志也没有保存；它对应的数据库记录（id 29）还在。这同时说明历史保留数量在起作用。
-- 恢复为每日周期前，22:43 的计划 Job（`report-cron-29912563`）已经启动，所以库里还会多一条 `SCHEDULED:202611152243` 的记录，不在上表中。
+- `report-cron-29912560` 的 Job 在收集证据时已被 `successfulJobsHistoryLimit: 3` 清理，所以 `04-jobs.txt`
+  里没有它，它的日志也没有保存；它对应的数据库记录（id 29）还在。这同时说明历史保留数量在起作用。
+- 恢复为每日周期前，22:43 的计划 Job（`report-cron-29912563`）已经启动，所以库里还会多一条 `SCHEDULED:202611152243`
+  的记录，不在上表中。
 - `schedule_key` 取的是程序实际启动的时刻。Pod 启动约需 20 多秒，如果某次启动延迟超过一分钟，key 会落到下一分钟。
+
+**截图**
+
+临时将 CronJob 改为每分钟一次，连续三分钟产生的 Job(Complete) 以及一个正在运行的 Job(Running)，根据 limit 设置，更早的 Job 已被清理：
+
+![演示 CronJob](04-cronjob/01-demo-cronjob.png)
+
+同一时间重复执行的 Job 日志，显示复用已有记录并跳过和返回成功：
+
+![重复 Job 日志](04-cronjob/02-demo-same-minute-duplicate-job.png)
 
 **证据文件**
 
@@ -429,13 +452,11 @@ id  trigger_type  range_start  range_end   status   job_name              schedu
 
 通过。CronJob 自动产生报告，同一计划时刻重复执行不会产生第二份。
 
-没有覆盖的情况：`concurrencyPolicy: Forbid` 的实际跳过行为没有单独制造（需要让一次任务运行超过一个周期）；每日周期（02:00）没有等到真实触发，只验证了演示周期。
-
----
+没有覆盖的情况：`concurrencyPolicy: Forbid` 的实际跳过行为没有单独制造（需要让一次任务运行超过一个周期）；每日周期（02: 00）没有等到真实触发，只验证了演示周期。
 
 ## 05 数据库持久化
 
-- 负责人：数据库同学
+- 负责人：数据库
 - 执行时间：
 - 状态：⬜
 
@@ -486,8 +507,6 @@ kubectl exec -n venue-booking database-0 -- sh -c 'mysql --default-character-set
 
 **结论**
 
----
-
 ## 06 前端页面
 
 - 负责人：前端
@@ -523,12 +542,10 @@ kubectl exec -n venue-booking database-0 -- sh -c 'mysql --default-character-set
 
 **结论**
 
----
-
 ## 遗留问题
 
 验证中发现但没有解决的问题记在这里，写明现象、影响和打算怎么处理。
 
 | 编号 | 现象 | 影响 | 处理 |
-|---|---|---|---|
-| | | | |
+|----|----|----|----|
+|    |    |    |    |

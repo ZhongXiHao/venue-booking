@@ -1,1 +1,49 @@
-{"code":"SUCCESS","data":{"id":"27","triggerType":"MANUAL","rangeStart":"2026-11-23","rangeEnd":"2026-11-29","status":"SUCCESS","jobName":"report-27","attempt":1,"errorMessage":null,"createdAt":"2026-11-15T14:38:54Z","startedAt":"2026-11-15T14:39:00Z","finishedAt":"2026-11-15T14:39:00Z","results":[{"venueId":"1","venueName":"第一会议室","reservationCount":2,"totalMinutes":120},{"venueId":"2","venueName":"学术报告厅","reservationCount":0,"totalMinutes":0},{"venueId":"3","venueName":"篮球球馆","reservationCount":0,"totalMinutes":0},{"venueId":"4","venueName":"烹饪空间","reservationCount":0,"totalMinutes":0},{"venueId":"5","venueName":"旧礼堂","reservationCount":0,"totalMinutes":0}]},"message":"查询成功"}
+{
+  "code": "SUCCESS",
+  "data": {
+    "id": "27",
+    "triggerType": "MANUAL",
+    "rangeStart": "2026-11-23",
+    "rangeEnd": "2026-11-29",
+    "status": "SUCCESS",
+    "jobName": "report-27",
+    "attempt": 1,
+    "errorMessage": null,
+    "createdAt": "2026-11-15T14:38:54Z",
+    "startedAt": "2026-11-15T14:39:00Z",
+    "finishedAt": "2026-11-15T14:39:00Z",
+    "results": [
+      {
+        "venueId": "1",
+        "venueName": "第一会议室",
+        "reservationCount": 2,
+        "totalMinutes": 120
+      },
+      {
+        "venueId": "2",
+        "venueName": "学术报告厅",
+        "reservationCount": 0,
+        "totalMinutes": 0
+      },
+      {
+        "venueId": "3",
+        "venueName": "篮球球馆",
+        "reservationCount": 0,
+        "totalMinutes": 0
+      },
+      {
+        "venueId": "4",
+        "venueName": "烹饪空间",
+        "reservationCount": 0,
+        "totalMinutes": 0
+      },
+      {
+        "venueId": "5",
+        "venueName": "旧礼堂",
+        "reservationCount": 0,
+        "totalMinutes": 0
+      }
+    ]
+  },
+  "message": "查询成功"
+}
