@@ -1,0 +1,83 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  creationTimestamp: "2026-11-15T14:38:54Z"
+  generation: 1
+  labels:
+    app: report-job
+    run-id: "27"
+  name: report-27
+  namespace: venue-booking
+  resourceVersion: "147028"
+  uid: f75468e7-3abf-4008-81a6-136658e46824
+spec:
+  activeDeadlineSeconds: 300
+  backoffLimit: 2
+  completionMode: NonIndexed
+  completions: 1
+  manualSelector: false
+  parallelism: 1
+  podReplacementPolicy: TerminatingOrFailed
+  selector:
+    matchLabels:
+      batch.kubernetes.io/controller-uid: f75468e7-3abf-4008-81a6-136658e46824
+  suspend: false
+  template:
+    metadata:
+      labels:
+        app: report-job
+        batch.kubernetes.io/controller-uid: f75468e7-3abf-4008-81a6-136658e46824
+        batch.kubernetes.io/job-name: report-27
+        controller-uid: f75468e7-3abf-4008-81a6-136658e46824
+        job-name: report-27
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: report
+        - name: REPORT_RUN_ID
+          value: "27"
+        - name: REPORT_LAUNCHER
+          value: noop
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: MYSQL_PASSWORD
+              name: database-credentials
+              optional: false
+        envFrom:
+        - configMapRef:
+            name: api-config
+        image: venue-api:lab2
+        imagePullPolicy: IfNotPresent
+        name: report
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Never
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+  ttlSecondsAfterFinished: 3600
+status:
+  completionTime: "2026-11-15T14:39:03Z"
+  conditions:
+  - lastProbeTime: "2026-11-15T14:39:03Z"
+    lastTransitionTime: "2026-11-15T14:39:03Z"
+    message: Reached expected number of succeeded pods
+    reason: CompletionsReached
+    status: "True"
+    type: SuccessCriteriaMet
+  - lastProbeTime: "2026-11-15T14:39:03Z"
+    lastTransitionTime: "2026-11-15T14:39:03Z"
+    message: Reached expected number of succeeded pods
+    reason: CompletionsReached
+    status: "True"
+    type: Complete
+  ready: 0
+  startTime: "2026-11-15T14:38:54Z"
+  succeeded: 1
+  terminating: 0
+  uncountedTerminatedPods: {}

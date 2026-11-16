@@ -1,0 +1,4 @@
+serviceaccount/api unchanged
+role.rbac.authorization.k8s.io/report-job-creator unchanged
+rolebinding.rbac.authorization.k8s.io/api-report-job-creator created
+jobs create after restore: yes

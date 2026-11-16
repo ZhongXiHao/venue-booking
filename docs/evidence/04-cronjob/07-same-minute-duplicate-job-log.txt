@@ -1,0 +1,20 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.0.5)
+
+2026-11-15T14:41:27.230Z  INFO 1 --- [api] [           main] com.fdu.cloudnative.api.ApiApplication   : Starting ApiApplication v0.0.1-SNAPSHOT using Java 21.0.13 with PID 1 (/app/app.jar started by app in /app)
+2026-11-15T14:41:27.236Z  INFO 1 --- [api] [           main] com.fdu.cloudnative.api.ApiApplication   : The following 1 profile is active: "report"
+2026-11-15T14:41:41.736Z  INFO 1 --- [api] [           main] com.fdu.cloudnative.api.ApiApplication   : Started ApiApplication in 17.546 seconds (process running for 20.786)
+2026-11-15T14:41:41.929Z  INFO 1 --- [api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-11-15T14:41:44.834Z  INFO 1 --- [api] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@7976e536
+2026-11-15T14:41:44.841Z  INFO 1 --- [api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-11-15T14:41:46.933Z  INFO 1 --- [api] [           main] c.f.cloudnative.api.job.ReportJobRunner  : Reusing existing report run: runId=30, scheduleKey=SCHEDULED:202611152241, jobName=report-cron-29912561
+2026-11-15T14:41:46.938Z  INFO 1 --- [api] [           main] c.f.c.api.service.ReportGenerator        : Report run 30 is already SUCCESS, skipping.
+2026-11-15T14:41:46.947Z  INFO 1 --- [api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-11-15T14:41:47.038Z  INFO 1 --- [api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.

@@ -1,0 +1,7 @@
+jobs create: yes
+jobs get: no
+jobs list: no
+jobs delete: no
+secrets get: no
+pods list: no
+jobs create (namespace default): no

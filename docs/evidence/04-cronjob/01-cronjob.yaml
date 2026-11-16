@@ -1,0 +1,78 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"batch/v1","kind":"CronJob","metadata":{"annotations":{},"labels":{"app":"report-job"},"name":"report-cron","namespace":"venue-booking"},"spec":{"concurrencyPolicy":"Forbid","failedJobsHistoryLimit":3,"jobTemplate":{"metadata":{"labels":{"app":"report-job","trigger":"scheduled"}},"spec":{"activeDeadlineSeconds":300,"backoffLimit":2,"template":{"metadata":{"labels":{"app":"report-job","trigger":"scheduled"}},"spec":{"automountServiceAccountToken":false,"containers":[{"env":[{"name":"SPRING_PROFILES_ACTIVE","value":"report"},{"name":"REPORT_LAUNCHER","value":"noop"},{"name":"REPORT_JOB_NAME","valueFrom":{"fieldRef":{"fieldPath":"metadata.labels['batch.kubernetes.io/job-name']"}}},{"name":"REPORT_SCHEDULE_DEMO","value":"true"},{"name":"DB_PASSWORD","valueFrom":{"secretKeyRef":{"key":"MYSQL_PASSWORD","name":"database-credentials"}}}],"envFrom":[{"configMapRef":{"name":"api-config"}}],"image":"venue-api:lab2","imagePullPolicy":"IfNotPresent","name":"report","resources":{"limits":{"cpu":"500m","memory":"512Mi"},"requests":{"cpu":"100m","memory":"256Mi"}}}],"restartPolicy":"Never"}}}},"schedule":"*/1 * * * *","startingDeadlineSeconds":300,"successfulJobsHistoryLimit":3,"timeZone":"Asia/Shanghai"}}
+  creationTimestamp: "2026-11-15T12:11:36Z"
+  generation: 5
+  labels:
+    app: report-job
+  name: report-cron
+  namespace: venue-booking
+  resourceVersion: "147042"
+  uid: f4e13e6b-4f0d-453a-b5e4-2e8ff3dd9c8c
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    metadata:
+      labels:
+        app: report-job
+        trigger: scheduled
+    spec:
+      activeDeadlineSeconds: 300
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: report-job
+            trigger: scheduled
+        spec:
+          automountServiceAccountToken: false
+          containers:
+          - env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: report
+            - name: REPORT_LAUNCHER
+              value: noop
+            - name: REPORT_JOB_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+            - name: REPORT_SCHEDULE_DEMO
+              value: "true"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: MYSQL_PASSWORD
+                  name: database-credentials
+            envFrom:
+            - configMapRef:
+                name: api-config
+            image: venue-api:lab2
+            imagePullPolicy: IfNotPresent
+            name: report
+            resources:
+              limits:
+                cpu: 500m
+                memory: 512Mi
+              requests:
+                cpu: 100m
+                memory: 256Mi
+            terminationMessagePath: /dev/termination-log
+            terminationMessagePolicy: File
+          dnsPolicy: ClusterFirst
+          restartPolicy: Never
+          schedulerName: default-scheduler
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+  schedule: '*/1 * * * *'
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  suspend: false
+  timeZone: Asia/Shanghai
+status:
+  lastScheduleTime: "2026-11-15T13:01:00Z"
+  lastSuccessfulTime: "2026-11-15T13:01:24Z"
