@@ -12,6 +12,14 @@ test('renders the Vue app shell', async ({ page }) => {
   await expect(nav.getByRole('link', { name: '预约记录' })).toBeAttached()
   await expect(nav.getByRole('link', { name: '创建预约' })).toBeAttached()
   await expect(nav.getByRole('link', { name: '创建场地' })).toBeAttached()
+  await expect(nav.getByRole('link', { name: '统计报告' })).toBeAttached()
+})
+
+test('loads the reports deep link after refresh', async ({ page }) => {
+  await page.goto('/reports')
+  await page.reload()
+  await expect(page.getByRole('heading', { name: '场地利用率报告' })).toBeVisible()
+  await expect(page.getByLabel('起始日期')).toBeVisible()
 })
 
 // 深链直达：SPA 回退（Vite dev 或 nginx try_files）必须让深链直接打开而不 404

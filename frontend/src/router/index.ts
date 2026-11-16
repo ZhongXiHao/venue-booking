@@ -45,6 +45,16 @@ const router = createRouter({
         import('../views/ReservationDetailView.vue'),
     },
     {
+      path: '/reports',
+      name: 'reports',
+      component: () => import('../views/ReportListView.vue'),
+    },
+    {
+      path: '/reports/:id',
+      name: 'report-detail',
+      component: () => import('../views/ReportDetailView.vue'),
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () =>

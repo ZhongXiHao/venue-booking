@@ -24,6 +24,9 @@ import { RouterLink, RouterView } from 'vue-router'
           <RouterLink to="/venues/new">
             创建场地
           </RouterLink>
+          <RouterLink to="/reports">
+            统计报告
+          </RouterLink>
         </nav>
       </div>
     </header>
