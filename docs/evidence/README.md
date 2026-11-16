@@ -301,15 +301,19 @@ pods list: no
 jobs create (namespace default): no
 ```
 
-失败路径：
+失败路径（2026-11-16 在错误信息修复后重新执行）：
 
-| 检查点    | 结果                                                                                                                                                                  |
-|--------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 创建接口   | `503`，`code` 为 `REPORT_JOB_CREATE_FAILED`，由 `api-7d87cc6995-f68ww` 处理                                                                                               |
-| 记录     | id 28，`FAILED`，`attempt` 为 0，`errorMessage` 为 `创建 Job 失败：… jobs.batch is forbidden: User "system:serviceaccount:venue-booking:api" cannot create resource "jobs" …` |
-| 集群里    | 没有 `report-28` 这个 Job（`NotFound`）                                                                                                                                   |
-| API 日志 | 有一条 `WARN 创建报告 Job 失败，runId=28` 和完整堆栈                                                                                                                               |
-| 恢复     | 重新 `apply -k k8s/rbac` 后，`jobs create` 回到 yes                                                                                                                       |
+| 检查点 | 结果 |
+|---|---|
+| 创建接口 | `503`，`code` 为 `REPORT_JOB_CREATE_FAILED`，由 `api-7676b67db8-wqqh9` 处理 |
+| 记录 | id 43，`FAILED`，`attempt` 为 0，`errorMessage` 为 `创建 Job 失败：API 没有创建 Job 的权限（403）` |
+| 集群里 | 没有 `report-43` 这个 Job（`NotFound`） |
+| API 日志 | 有一条 `WARN 创建报告 Job 失败，runId=43`，其 `Caused by` 保留了 Kubernetes 返回的完整原因（`jobs.batch is forbidden: User "system:serviceaccount:venue-booking:api" cannot create resource "jobs" …`） |
+| 恢复 | 重新 `apply -k k8s/rbac` 后，`jobs create` 回到 yes；随后再触发一次，Job `report-44` 正常完成 |
+
+记录里的 `errorMessage` 会显示在页面上，所以只说明是哪一类问题（没有权限、同名 Job 已存在、命名空间不存在、无法连接 Kubernetes API 等），不包含集群内部地址和账号名。排查时用记录 id 到 API 日志里找对应的 `WARN`，完整原因在那里。
+
+2026-11-15 第一次执行时（记录 id 28），`errorMessage` 是 Kubernetes 客户端的原始信息，内容很长并且带有集群内部地址，之后已修复。`03-rbac-failure-record.png` 是修复前截的，上面还是旧的长信息；修复后的截图是 `03-rbac-failure-record-simplified.png`。
 
 **证据文件**
 
@@ -327,9 +331,13 @@ rbac 检查：
 
 ![rbac](03-job/02-rbac.png)
 
-rbac 失败后，创建 Job 接口返回 503：
+rbac 失败后，创建 Job 接口返回 503（**修复前，返回完整异常堆栈给用户**）：
 
 ![rbac-failure](03-job/03-rbac-failure-record.png)
+
+rbac 失败后，创建 Job 接口返回 503（**修复后，仅返回简短信息给用户**）
+
+![rbac-failure-simplified](03-job/03-rbac-failure-record-simplified.png)
 
 **结论**
 

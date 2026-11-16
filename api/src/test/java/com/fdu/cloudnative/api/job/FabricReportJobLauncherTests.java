@@ -2,6 +2,7 @@ package com.fdu.cloudnative.api.job;
 
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
+import io.fabric8.kubernetes.api.model.StatusBuilder;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.api.model.batch.v1.JobList;
 import io.fabric8.kubernetes.api.model.batch.v1.JobSpec;
@@ -141,28 +142,60 @@ class FabricReportJobLauncherTests {
         verify(resource).create();
     }
 
-    @Test
-    void launch_kubernetesError_isWrappedWithCause() {
-        KubernetesClientException boom = new KubernetesClientException("jobs.batch is forbidden");
-        when(resource.create()).thenThrow(boom);
+    private static KubernetesClientException k8sError(int code, String reason, String message) {
+        return new KubernetesClientException(message, code,
+                new StatusBuilder().withCode(code).withReason(reason).withMessage(message).build());
+    }
 
+    private String failureMessage(KubernetesClientException boom) {
+        when(resource.create()).thenThrow(boom);
         ReportJobCreateException thrown = assertThrows(ReportJobCreateException.class,
                 () -> launcher.launch(12L, "report-12"));
+        // 完整的原始异常必须保留为 cause，服务层靠它把细节写进日志
         assertSame(boom, thrown.getCause());
-        // 这段文字会被服务层写进记录的 error_message
-        assertTrue(thrown.getMessage().contains("jobs.batch is forbidden"));
+        return thrown.getMessage();
     }
 
     @Test
-    void launch_connectionError_messageIncludesRootCause() {
-        // 连不上集群时外层 message 很笼统，真正的原因在最里层
+    void launch_forbidden_messageIsShortAndHidesClusterDetails() {
+        // 这是 fabric8 在权限不足时给出的真实信息（节选）：含内部地址、ServiceAccount 名
+        String raw = "Failure executing: POST at: https://10.96.0.1:443/apis/batch/v1/namespaces/venue-booking/jobs."
+                + " Message: jobs.batch is forbidden: User \"system:serviceaccount:venue-booking:api\""
+                + " cannot create resource \"jobs\" in API group \"batch\".";
+
+        String message = failureMessage(k8sError(403, "Forbidden", raw));
+
+        // 这段文字会写进记录的 error_message 并显示在页面上
+        assertEquals("创建 Job 失败：API 没有创建 Job 的权限（403）", message);
+        assertFalse(message.contains("10.96.0.1"));
+        assertFalse(message.contains("serviceaccount"));
+    }
+
+    @Test
+    void launch_conflict_saysJobAlreadyExists() {
+        assertEquals("创建 Job 失败：同名 Job 已存在（409）",
+                failureMessage(k8sError(409, "AlreadyExists", "jobs.batch \"report-12\" already exists")));
+    }
+
+    @Test
+    void launch_namespaceMissing_saysNamespaceNotFound() {
+        assertEquals("创建 Job 失败：命名空间不存在（404）",
+                failureMessage(k8sError(404, "NotFound", "namespaces \"venue-booking\" not found")));
+    }
+
+    @Test
+    void launch_otherStatus_reportsCodeAndReasonOnly() {
+        assertEquals("创建 Job 失败：Kubernetes 返回 422 Invalid",
+                failureMessage(k8sError(422, "Invalid", "Job.batch \"report-12\" is invalid: spec.template: ...")));
+    }
+
+    @Test
+    void launch_connectionError_saysCannotReachApi() {
+        // 连不上集群：没有 HTTP 状态码，原因在最里层
         KubernetesClientException boom = new KubernetesClientException("An error has occurred.",
                 new java.io.IOException("wrapper", new java.net.ConnectException("Connection refused")));
-        when(resource.create()).thenThrow(boom);
 
-        ReportJobCreateException thrown = assertThrows(ReportJobCreateException.class,
-                () -> launcher.launch(12L, "report-12"));
-        assertEquals("创建 Job 失败：An error has occurred.（Connection refused）", thrown.getMessage());
+        assertEquals("创建 Job 失败：无法连接 Kubernetes API", failureMessage(boom));
     }
 
     // ---------- 配置检查 ----------

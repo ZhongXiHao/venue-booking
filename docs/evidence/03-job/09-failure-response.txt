@@ -1,8 +1,8 @@
 HTTP/1.1 503 
-X-Instance-Id: api-7d87cc6995-f68ww
+X-Instance-Id: api-7676b67db8-wqqh9
 Content-Type: application/json
 Transfer-Encoding: chunked
-Date: Sun, 15 Nov 2026 14:39:08 GMT
+Date: Mon, 16 Nov 2026 14:06:28 GMT
 Connection: close
 
 {"code":"REPORT_JOB_CREATE_FAILED","data":null,"message":"无法创建 Kubernetes Job"}

@@ -46,17 +46,25 @@ public class FabricReportJobLauncher implements ReportJobLauncher {
         }
     }
 
-    /** 连不上集群时 fabric8 的 message 只有一句 "An error has occurred."，真正的原因在最里层，一并带上。 */
-    private static String describe(Throwable e) {
-        Throwable root = e;
-        while (root.getCause() != null && root.getCause() != root) {
-            root = root.getCause();
+    /**
+     * 生成写进报告记录、会显示给用户的失败原因：只说明是哪一类问题。
+     * fabric8 的原始信息里有集群内部地址、ServiceAccount 名和整段 Status，不适合给用户看；
+     * 完整的异常作为 cause 保留，由服务层连同堆栈写进 API 日志，排查时看日志。
+     */
+    private static String describe(KubernetesClientException e) {
+        int code = e.getCode();
+        if (code <= 0) {
+            return "无法连接 Kubernetes API";   // 没有拿到 HTTP 响应：网络不通、超时等
         }
-        if (root == e) {
-            return e.getMessage();
-        }
-        String rootReason = root.getMessage() != null ? root.getMessage() : root.getClass().getSimpleName();
-        return e.getMessage() + "（" + rootReason + "）";
+        return switch (code) {
+            case 401, 403 -> "API 没有创建 Job 的权限（" + code + "）";
+            case 404 -> "命名空间不存在（404）";
+            case 409 -> "同名 Job 已存在（409）";
+            default -> {
+                String reason = e.getStatus() != null ? e.getStatus().getReason() : null;
+                yield "Kubernetes 返回 " + code + (reason != null ? " " + reason : "");
+            }
+        };
     }
 
     Job buildJob(Long runId, String jobName) {
