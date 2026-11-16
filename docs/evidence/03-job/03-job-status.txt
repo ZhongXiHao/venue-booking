@@ -1,0 +1,2 @@
+NAME                  STATUS     COMPLETIONS   DURATION   AGE   CONTAINERS   IMAGES           SELECTOR
+job.batch/report-27   Complete   1/1           9s         9s    report       venue-api:lab2   batch.kubernetes.io/controller-uid=f75468e7-3abf-4008-81a6-136658e46824

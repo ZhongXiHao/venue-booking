@@ -1,0 +1,2 @@
+NAME          SCHEDULE    TIMEZONE        SUSPEND   ACTIVE   LAST SCHEDULE   AGE    CONTAINERS   IMAGES           SELECTOR
+report-cron   0 2 * * *   Asia/Shanghai   False     1        21s             151m   report       venue-api:lab2   <none>
