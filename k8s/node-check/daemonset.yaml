@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-check
+spec:
+  selector:
+    matchLabels:
+      app: node-check
+  template:
+    metadata:
+      labels:
+        app: node-check
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.io/os: linux
+      # 兼容只有控制平面节点的实验集群；不宽泛容忍其他自定义污点。
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: node-check
+          image: busybox:1.37.0
+          command: ["/bin/sh", "/scripts/check.sh"]
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: CHECK_URL
+              value: http://frontend/healthz
+            - name: CHECK_INTERVAL
+              value: "30"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 8Mi
+            limits:
+              cpu: 100m
+              memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          readinessProbe:
+            exec:
+              command: ["/bin/sh", "-c", "test -f /tmp/node-check-heartbeat && test $(($(date +%s) - $(cat /tmp/node-check-heartbeat))) -lt 90"]
+            initialDelaySeconds: 6
+            periodSeconds: 15
+          livenessProbe:
+            exec:
+              command: ["/bin/sh", "-c", "test -f /tmp/node-check-heartbeat && test $(($(date +%s) - $(cat /tmp/node-check-heartbeat))) -lt 90"]
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+              readOnly: true
+            - name: temporary
+              mountPath: /tmp
+      volumes:
+        - name: script
+          configMap:
+            name: node-check-script
+        - name: temporary
+          emptyDir:
+            sizeLimit: 8Mi

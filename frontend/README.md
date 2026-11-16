@@ -28,3 +28,7 @@ npm run lint         # ESLint / oxlint
 - `src/types/`：与契约对应的类型
 - `src/views/`、`src/components/`：页面与组件
 - `src/router/`：路由（history 模式，nginx 已配置回退到 `index.html`）
+
+## Lab2 前端
+
+报告入口为 `/reports`。部署、镜像导入、节点检查和验收步骤见 [Lab2 前端指南](../docs/lab2-frontend-guide.md)，截图清单见 [验收记录](../docs/lab2-frontend-evidence.md)。

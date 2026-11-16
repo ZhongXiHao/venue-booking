@@ -22,6 +22,7 @@ describe('App', () => {
       '/reservations',
       '/reservations/new',
       '/venues/new',
+      '/reports',
     ])
   })
 })

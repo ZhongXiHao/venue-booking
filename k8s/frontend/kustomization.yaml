@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: venue-booking
+resources:
+  - deployment.yaml
+  - service.yaml
+# 与 Docker/Compose 共用一份 nginx.conf，避免配置漂移。
+# 在仓库根目录执行：kubectl kustomize k8s/frontend --load-restrictor LoadRestrictionsNone
+# 保留名称哈希，配置变化后 Deployment 自动引用新 ConfigMap 并滚动更新。
+configMapGenerator:
+  - name: frontend-nginx
+    files:
+      - default.conf=../../frontend/nginx.conf
