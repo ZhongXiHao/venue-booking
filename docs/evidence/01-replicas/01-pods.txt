@@ -1,0 +1,6 @@
+NAME                  READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS   IMAGES           SELECTOR
+deployment.apps/api   2/2     2            2           5m57s   api          venue-api:lab2   app=api
+
+NAME                       READY   STATUS    RESTARTS   AGE     IP           NODE       NOMINATED NODE   READINESS GATES
+pod/api-7d87cc6995-b67bw   1/1     Running   0          5m57s   10.244.0.4   minikube   <none>           <none>
+pod/api-7d87cc6995-zrj7v   1/1     Running   0          5m57s   10.244.0.5   minikube   <none>           <none>

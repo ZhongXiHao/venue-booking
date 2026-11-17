@@ -1,0 +1,3 @@
+NAME                   READY   STATUS    RESTARTS   AGE     IP           NODE       NOMINATED NODE   READINESS GATES
+api-7d87cc6995-pgs6s   1/1     Running   0          4m25s   10.244.0.8   minikube   <none>           <none>
+api-7d87cc6995-zrj7v   1/1     Running   0          15m     10.244.0.5   minikube   <none>           <none>

@@ -1,0 +1,5 @@
+NAME             READY   STATUS    RESTARTS      AGE    IP           NODE       NOMINATED NODE   READINESS GATES
+pod/database-0   1/1     Running   1 (36m ago)   2d1h   10.244.0.2   minikube   <none>           <none>
+
+NAME                                    STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE    VOLUMEMODE
+persistentvolumeclaim/data-database-0   Bound    pvc-c69abfc9-dd40-4aaf-b17a-929355b055e3   1Gi        RWO            standard       <unset>                 2d1h   Filesystem

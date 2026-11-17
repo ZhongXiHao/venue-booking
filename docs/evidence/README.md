@@ -6,11 +6,11 @@
 
 | 编号 | 验证项               | 负责人   | 子目录               | 状态    |
 |----|-------------------|-------|-------------------|-------|
-| 01 | API 多副本与 Pod 自愈   | 数据库同学 | `01-replicas/`    | ⬜ 未开始 |
+| 01 | API 多副本与 Pod 自愈   | 数据库 | `01-replicas/`    | ✅ 通过 |
 | 02 | 多副本下的并发预约         | 后端    | `02-concurrency/` | ✅ 通过  |
 | 03 | 手动触发报告 Job（含失败路径） | 后端    | `03-job/`         | ✅ 通过  |
 | 04 | CronJob 定时报告      | 后端    | `04-cronjob/`     | ✅ 通过  |
-| 05 | 数据库持久化            | 数据库同学 | `05-persistence/` | ⬜ 未开始 |
+| 05 | 数据库持久化            | 数据库 | `05-persistence/` | ✅ 通过 |
 | 06 | 前端页面与 DaemonSet | 前端 | 见 [`lab2-frontend-evidence.md`](../lab2-frontend-evidence.md) | 以该文件为准 |
 
 状态用：⬜ 未开始 / 🟡 进行中 / ✅ 通过 / ❌ 未通过（写明原因）。
@@ -57,8 +57,11 @@ kubectl get all,pvc,cm,sa,role,rolebinding,cronjob -n venue-booking > docs/evide
 ## 01 API 多副本与 Pod 自愈
 
 - 负责人：数据库
-- 执行时间：
-- 状态：⬜
+- 执行时间：2026-11-17 16:12（CST）
+- 执行人：数据库
+- 状态：✅ 通过
+
+> 01 于 2026-11-17 在本机默认 minikube 上执行（节点名为 `minikube`，API 镜像 `venue-api:lab2`，命名空间 `venue-booking`），与上表中 profile `k8s-lab` 的 3 节点集群不是同一环境。
 
 **要证明什么**
 
@@ -101,7 +104,46 @@ kubectl get pods -n venue-booking -l app=api -o wide > docs/evidence/01-replicas
 
 **实际结果**
 
-（填写：两个 Pod 名、各自处理的请求数、被删的 Pod 名和新 Pod 名、恢复用时）
+`01-pods.txt`：`kubectl get deploy api` 显示 `2/2`。
+
+```
+NAME                  READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS   IMAGES           SELECTOR
+deployment.apps/api   2/2     2            2           5m57s   api          venue-api:lab2   app=api
+
+NAME                       READY   STATUS    RESTARTS   AGE     IP           NODE       NOMINATED NODE   READINESS GATES
+pod/api-7d87cc6995-b67bw   1/1     Running   0          5m57s   10.244.0.4   minikube   <none>           <none>
+pod/api-7d87cc6995-zrj7v   1/1     Running   0          5m57s   10.244.0.5   minikube   <none>           <none>
+
+```
+
+`02-instance-distribution.txt`：两个 Pod 名都出现，处理的请求数加起来是 20。
+
+```
+     13 X-Instance-Id: api-7d87cc6995-b67bw
+      7 X-Instance-Id: api-7d87cc6995-zrj7v
+```
+
+删掉一个 API Pod 后，Deployment 自动补回，服务不中断：
+
+![image-20261117160821830](01-replicas\03-pods-after-delete-1.png)
+
+![image-20261117160949352](01-replicas\03-pods-after-delete-2.png)
+
+![image-20261117162845891](01-replicas\03-pods-after-delete-3.png)
+
+`03-pods-after-delete.txt`：
+
+```
+NAME                   READY   STATUS    RESTARTS   AGE     IP           NODE       NOMINATED NODE   READINESS GATES
+api-7d87cc6995-pgs6s   1/1     Running   0          4m25s   10.244.0.8   minikube   <none>           <none>
+api-7d87cc6995-zrj7v   1/1     Running   0          15m     10.244.0.5   minikube   <none>           <none>
+```
+
+被删的 Pod 名：`api-7d87cc6995-b67bw`
+
+新 Pod 名：`api-7d87cc6995-pgs6s`
+
+恢复用时：22 秒
 
 **证据文件**
 
@@ -110,6 +152,8 @@ kubectl get pods -n venue-booking -l app=api -o wide > docs/evidence/01-replicas
 - `01-replicas/03-pods-after-delete.txt`
 
 **结论**
+
+通过。API 的 2 个副本均已就绪并都处理了请求；删除 `api-7d87cc6995-b67bw` 后约 22 秒补回 `api-7d87cc6995-pgs6s`，另一个副本全程未中断。
 
 ## 02 多副本下的并发预约
 
@@ -465,8 +509,11 @@ id  trigger_type  range_start  range_end   status   job_name              schedu
 ## 05 数据库持久化
 
 - 负责人：数据库
-- 执行时间：
-- 状态：⬜
+- 执行时间：2026-11-17 16:23（CST）
+- 执行人：数据库
+- 状态：✅ 通过
+
+> 与 01 同一环境
 
 **要证明什么**
 
@@ -507,13 +554,86 @@ kubectl exec -n venue-booking database-0 -- sh -c 'mysql --default-character-set
 
 **实际结果**
 
-（填写：删除前后的行数、PVC 名和卷名、Pod 恢复用时、API 是否自动恢复）
+![image-20261117164707803](05-persistence\00-commands.png)
+
+`01-before.txt`：
+
+```
+NAME             READY   STATUS    RESTARTS      AGE    IP           NODE       NOMINATED NODE   READINESS GATES
+pod/database-0   1/1     Running   1 (36m ago)   2d1h   10.244.0.2   minikube   <none>           <none>
+
+NAME                                    STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE    VOLUMEMODE
+persistentvolumeclaim/data-database-0   Bound    pvc-c69abfc9-dd40-4aaf-b17a-929355b055e3   1Gi        RWO            standard       <unset>                 2d1h   Filesystem
+```
+
+`02-counts-before.txt`：
+
+```
+venues
+5
+reservations
+1
+report_runs
+0
+```
+
+删除前的行数：`venues` 是 5
+
+删除前的 PVC VOLUME：`pvc-c69abfc9-dd40-4aaf-b17a-929355b055e3`
+
+删除前的 Pod 名：`database-0`
+
+`03-after.txt`：
+
+```
+NAME             READY   STATUS    RESTARTS   AGE   IP           NODE       NOMINATED NODE   READINESS GATES
+pod/database-0   1/1     Running   0          82s   10.244.0.9   minikube   <none>           <none>
+
+NAME                                    STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE    VOLUMEMODE
+persistentvolumeclaim/data-database-0   Bound    pvc-c69abfc9-dd40-4aaf-b17a-929355b055e3   1Gi        RWO            standard       <unset>                 2d1h   Filesystem
+```
+
+`04-counts-after.txt`：
+
+```
+venues
+5
+reservations
+1
+report_runs
+0
+id	booker_name	reservation_date	status
+1	持久化测试	2030-03-01	ACTIVE
+```
+
+删除后的行数：`venues` 仍是 5，说明 `db/init` 没有再次执行。
+
+删除后的 PVC VOLUME：`pvc-c69abfc9-dd40-4aaf-b17a-929355b055e3`，与删除前一致
+
+重建后的 Pod 名：`database-0`
+
+删除前写入的那一条预约，重建后能查到
+
+![image-20261117165316403](05-persistence\05-pod-time.png)
+
+Pod 恢复用时：11 秒
+
+![image-20261117165659989](05-persistence\06-api-status.png)
+
+![image-20261117165716603](05-persistence\07-api-200.png)
+
+数据库恢复后，API 的就绪探针恢复为就绪，接口可用
 
 **证据文件**
 
-- `05-persistence/01-before.txt` … `04-counts-after.txt`
+- `05-persistence/01-before.txt`
+- `05-persistence/02-counts-before.txt`
+- `05-persistence/03-after.txt`
+- `05-persistence/04-counts-after.txt`
 
 **结论**
+
+通过。删除 `database-0` 后 StatefulSet 重建同名 Pod，并挂回原 PVC `pvc-c69abfc9-dd40-4aaf-b17a-929355b055e3`；场地 5 条、预约 1 条、报告 0 条均未变化，「持久化测试」那一条预约仍在。
 
 ## 06 前端页面与 DaemonSet
 
@@ -533,5 +653,5 @@ kubectl exec -n venue-booking database-0 -- sh -c 'mysql --default-character-set
 验证中发现但没有解决的问题记在这里，写明现象、影响和打算怎么处理。
 
 | 编号 | 现象 | 影响 | 处理 |
-|----|----|----|----|
-|    |    |    |    |
+| ---- | ---- | ---- | ---- |
+|      |      |      |      |
